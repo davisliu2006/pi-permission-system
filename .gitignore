@@ -1,0 +1,12 @@
+# folders
+.vscode/
+bin/
+*/bin/
+node_modules/
+plan/
+
+# files
+.DS_Store
+package-lock.json
+
+# extensions

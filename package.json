@@ -1,0 +1,45 @@
+{
+  "name": "pi-permission-system",
+  "version": "0.1.0",
+  "description": "Permission enforcement extension for the Pi coding agent.",
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test"
+  },
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "permissions"
+  ],
+  "license": "MIT",
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=0.78.0",
+    "@earendil-works/pi-coding-agent": ">=0.78.0"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.78.1",
+    "@earendil-works/pi-coding-agent": "^0.78.1",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.3"
+  }
+}
