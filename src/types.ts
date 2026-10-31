@@ -1,4 +1,14 @@
 import { ASK, PERMISSION_STATES } from "./constants.ts";
+import type { PiToolInput } from "./types-pi.ts";
+
+// utility functions
+
+export function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof(value) !== "object" || Array.isArray(value)) {return undefined;}
+  return value as Record<string, unknown>;
+}
+
+// permission states
 
 export type PermissionState = (typeof PERMISSION_STATES)[number];
 
@@ -6,10 +16,7 @@ export function toPermissionState(value: unknown): PermissionState | undefined {
   return PERMISSION_STATES.find((state) => state === value);
 }
 
-export function toRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof(value) !== "object" || Array.isArray(value)) {return undefined;}
-  return value as Record<string, unknown>;
-}
+// permission config
 
 export type PermissionSection = Record<string, PermissionState>;
 
@@ -26,7 +33,9 @@ export function createDefaultPermissionConfig(): PermissionConfig {
 
 export const DEFAULT_PERMISSION_CONFIG = createDefaultPermissionConfig();
 
-export type RequestBodyKind = "command" | "path" | "target" | "tool";
+// permission request
+
+export type RequestBodyKind = "command" | "path" | "generic";
 
 /**
  * Request for a tool.
@@ -38,14 +47,15 @@ export type RequestBodyKind = "command" | "path" | "target" | "tool";
  */
 export interface PermissionRequest {
   toolName: string;
-  input: unknown;
+  input: PiToolInput;
   body: string;
   bodyKind: RequestBodyKind;
   cwd: string;
-  normalizedPath?: string;
-  externalDirectoryPath?: string;
-  chainedBash?: boolean;
+  isExternalDirectory?: boolean;
+  isChainedBash?: boolean;
 }
+
+// resolved policy
 
 export type PolicySource = "bash" | "tool" | "default" | "external";
 
@@ -56,13 +66,22 @@ export interface PolicyResolution {
   state: PermissionState;
   source: PolicySource;
   matchedPattern?: string;
-  chainedBash: boolean;
+  isChainedBash: boolean;
 }
 
-export type AllowAlwaysRule =
-  | { scope: "tool"; tool: string; kind: "exact"; body: string }
-  | { scope: "tool"; tool: "bash"; kind: "wildcard"; pattern: string }
-  | { scope: "external_directory"; tool: string; kind: "exact"; body: string };
+// other types
+
+export type AllowAlwaysRule = {
+  scope: "tool" | "external_directory";
+  kind: "exact";
+  tool: string;
+  body: string;
+} | {
+  scope: "tool";
+  kind: "wildcard";
+  tool: "bash";
+  body: string;
+};
 
 export interface PermissionDialogSelection {
   kind: "once" | "always" | "reject";

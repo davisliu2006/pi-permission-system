@@ -18,14 +18,14 @@ const baseConfig: PermissionConfig = {
   external_directory: {},
 };
 
-function bashRequest(command: string): PermissionRequest {
+function bashRequest(command: string, isChainedBash = false): PermissionRequest {
   return {
     toolName: "bash",
     input: { command },
     body: command,
     bodyKind: "command",
     cwd: "/project",
-    chainedBash: false,
+    isChainedBash,
   };
 }
 
@@ -55,11 +55,11 @@ test("chained commands skip bash patterns and fall back to tools.bash", () => {
     },
   };
 
-  const request = bashRequest("git status; rm -rf /");
+  const request = bashRequest("git status; rm -rf /", true);
   const policy = resolvePolicy(config, request);
   assert.equal(policy.state, "ask");
   assert.equal(policy.source, "tool");
-  assert.equal(policy.chainedBash, true);
+  assert.equal(policy.isChainedBash, true);
 });
 
 test("chained commands fall back to default when tools.bash is absent", () => {
@@ -70,7 +70,7 @@ test("chained commands fall back to default when tools.bash is absent", () => {
     external_directory: {},
   };
 
-  const policy = resolvePolicy(config, bashRequest("git status && rm -rf /"));
+  const policy = resolvePolicy(config, bashRequest("git status && rm -rf /", true));
   assert.equal(policy.state, "deny");
   assert.equal(policy.source, "default");
 });
@@ -88,7 +88,7 @@ test("external directory rules replace the normal tool policy", () => {
     body: "/outside/file.txt",
     bodyKind: "path",
     cwd: "/project",
-    externalDirectoryPath: "/outside/file.txt",
+    isExternalDirectory: true,
   };
 
   const policy = resolvePolicy(config, request);
@@ -98,7 +98,7 @@ test("external directory rules replace the normal tool policy", () => {
 
 test("session wildcard approvals do not apply to chained commands", () => {
   const rules: AllowAlwaysRule[] = [
-    { scope: "tool", tool: "bash", kind: "wildcard", pattern: "git status*" },
+    { scope: "tool", tool: "bash", kind: "wildcard", body: "git status*" },
   ];
 
   assert.equal(
@@ -127,7 +127,7 @@ test("external session approvals are scoped separately", () => {
     body: "/outside/file.txt",
     bodyKind: "path",
     cwd: "/project",
-    externalDirectoryPath: "/outside/file.txt",
+    isExternalDirectory: true,
   };
 
   const toolRule: AllowAlwaysRule[] = [

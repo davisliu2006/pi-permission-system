@@ -1,21 +1,23 @@
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import {
-  extractRawToolPath,
+  expandHome,
   isPathOutside,
   resolveToolPath,
   toPermissionPath,
 } from "../src/paths.ts";
 
-test("extracts paths for built-in path tools", () => {
-  assert.equal(extractRawToolPath("read", { path: "a.txt" }), "a.txt");
-  assert.equal(extractRawToolPath("write", { file_path: "b.txt" }), "b.txt");
-  assert.equal(extractRawToolPath("grep", {}), ".");
-  assert.equal(extractRawToolPath("custom", {}), undefined);
+test("expandHome resolves ~ and ~/ prefixes", () => {
+  const home = homedir();
+  assert.equal(expandHome("~"), home);
+  assert.equal(expandHome("~/docs"), join(home, "docs"));
+  assert.equal(expandHome("~\\docs"), join(home, "docs"));
+  assert.equal(expandHome("/tmp/file"), "/tmp/file");
+  assert.equal(expandHome("~user"), "~user");
 });
 
 test("resolves inside and outside paths", async () => {

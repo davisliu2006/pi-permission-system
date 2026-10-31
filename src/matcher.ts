@@ -8,14 +8,17 @@ export interface WildcardMatch {
   state: PermissionState;
 }
 
-export interface WildcardOptions {
-  caseInsensitive?: boolean;
-}
-
 /**
  * Cache for the compileWildcard function.
  */
 const cache = new Map<string, RegExp>();
+
+/**
+ * Clears the compiled wildcard cache.
+ */
+export function clearWildcardCache(): void {
+  cache.clear();
+}
 
 /**
  * If the character is a special regex character, prepend '\'.
@@ -27,14 +30,12 @@ function escapeRegexChar(char: string): string {
 /**
  * Converts wildcard to regex.
  */
-export function compileWildcard(pattern: string, options: WildcardOptions = {}): RegExp {
-  const isCaseInsensitive = options.caseInsensitive === true;
-  const cacheKey = `${isCaseInsensitive ? "i" : "s"}\u0000${pattern}`;
-  const cached = cache.get(cacheKey);
+function compileWildcard(pattern: string): RegExp {
+  const cached = cache.get(pattern);
   if (cached) {return cached;}
 
   if (pattern.length > MAX_PATTERN_LENGTH) {
-    cache.set(cacheKey, NEVER_MATCH);
+    cache.set(pattern, NEVER_MATCH);
     return NEVER_MATCH;
   }
 
@@ -58,17 +59,16 @@ export function compileWildcard(pattern: string, options: WildcardOptions = {}):
     }
   }
 
-  const flags = isCaseInsensitive ? "si" : "s";
-  const compiled = new RegExp(`^${regexSource}$`, flags);
-  cache.set(cacheKey, compiled);
+  const compiled = new RegExp(`^${regexSource}$`, "s");
+  cache.set(pattern, compiled);
   return compiled;
 }
 
 /**
  * True if the string matches wildcard.
  */
-export function matchesWildcard(pattern: string, str: string, options: WildcardOptions = {}): boolean {
-  return compileWildcard(pattern, options).test(str);
+export function matchesWildcard(pattern: string, str: string): boolean {
+  return compileWildcard(pattern).test(str);
 }
 
 /**
@@ -86,21 +86,6 @@ export function findLastWildcardMatch(
     }
   }
   return undefined;
-}
-
-/**
- * True if the wildcard has '*' or '?'.
- */
-export function hasUnescapedWildcard(pattern: string): boolean {
-  for (let i = 0; i < pattern.length; i++) {
-    const char = pattern[i];
-    if (char === "\\") {
-      i++;
-    } else if (char === "*" || char === "?") {
-      return true;
-    }
-  }
-  return false;
 }
 
 /**

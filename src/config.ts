@@ -93,7 +93,7 @@ function normalizeConfig(
 /**
  * Loads the config file and appends to the list of warnings.
  */
-export async function loadConfigFile(
+async function loadConfigFile(
   path: string,
   warnings: ConfigWarning[],
 ): Promise<PermissionConfig | undefined> {

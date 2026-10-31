@@ -1,5 +1,4 @@
 import { findLastWildcardMatch, matchesWildcard } from "./matcher.ts";
-import { hasShellChaining } from "./shell.ts";
 import type {
   PermissionConfig,
   PermissionRequest,
@@ -26,22 +25,13 @@ function fallbackState(config: PermissionConfig, toolName: string): PermissionSt
 }
 
 /**
- * Returns true the tool is a chained bash command.
- */
-export function isChainedBashCommand(request: PermissionRequest): boolean {
-  if (request.toolName !== "bash") {return false;}
-  if (request.chainedBash === true) {return true;}
-  return hasShellChaining(request.body);
-}
-
-/**
  * Returns the policy for the request using the correct precedence rules.
  */
 export function resolvePolicy(
   config: PermissionConfig,
   request: PermissionRequest,
 ): PolicyResolution {
-  if (request.externalDirectoryPath) { // external directory builtin tool
+  if (request.isExternalDirectory) { // external directory builtin tool
     const externalState = Object.hasOwn(config.external_directory, request.toolName)
       ? config.external_directory[request.toolName]
       : undefined;
@@ -50,18 +40,18 @@ export function resolvePolicy(
         state: externalState,
         source: "external",
         matchedPattern: request.toolName,
-        chainedBash: false,
+        isChainedBash: false,
       };
     }
   }
 
   if (request.toolName === "bash") { // bash
-    const chained = isChainedBashCommand(request);
+    const chained = request.isChainedBash === true;
     if (chained) { // chained bash - can't match wildcard
       return {
         state: fallbackState(config, "bash"),
         source: configuredToolState(config, "bash") ? "tool" : "default",
-        chainedBash: true,
+        isChainedBash: true,
       };
     }
 
@@ -71,14 +61,14 @@ export function resolvePolicy(
         state: match.state,
         source: "bash",
         matchedPattern: match.pattern,
-        chainedBash: false,
+        isChainedBash: false,
       };
     }
 
     return { // fallback to default
       state: fallbackState(config, "bash"),
       source: configuredToolState(config, "bash") ? "tool" : "default",
-      chainedBash: false,
+      isChainedBash: false,
     };
   }
 
@@ -87,7 +77,7 @@ export function resolvePolicy(
   return {
     state: toolState ?? config.default,
     source: toolState ? "tool" : "default",
-    chainedBash: false,
+    isChainedBash: false,
   };
 }
 
@@ -97,9 +87,9 @@ export function resolvePolicy(
 export function findSessionApproval(
   rules: readonly AllowAlwaysRule[],
   request: PermissionRequest,
-  chainedBash: boolean,
+  isChainedBash: boolean,
 ): AllowAlwaysRule | undefined {
-  const isExternal = request.externalDirectoryPath !== undefined;
+  const isExternal = request.isExternalDirectory === true;
 
   for (let index = rules.length - 1; index >= 0; index -= 1) {
     const rule = rules[index]!;
@@ -120,8 +110,8 @@ export function findSessionApproval(
     }
 
     if (rule.tool !== "bash" || request.bodyKind !== "command") {continue;}
-    if (chainedBash) {continue;}
-    if (matchesWildcard(rule.pattern, request.body)) {return rule;}
+    if (isChainedBash) {continue;}
+    if (matchesWildcard(rule.body, request.body)) {return rule;}
   }
 
   return undefined;
@@ -138,4 +128,18 @@ export function describePolicy(policy: PolicyResolution): string {
     return `${policy.state} (tool rule)`;
   }
   return `${policy.state} (default)`;
+}
+
+/**
+ * True when "Allow Always" will generate a bash wildcard instead of an exact rule.
+ * Mirrors the branching in chooseAlwaysRule.
+ */
+export function willGenerateBashWildcard(
+  request: PermissionRequest,
+  policy: PolicyResolution,
+): boolean {
+  if (request.isExternalDirectory && policy.source === "external") {return false;}
+  if (request.toolName !== "bash") {return false;}
+  if (policy.isChainedBash) {return false;}
+  return true;
 }

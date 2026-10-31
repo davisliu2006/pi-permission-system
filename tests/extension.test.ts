@@ -18,16 +18,17 @@ test("external_directory marker is limited to built-in path tools", async () => 
     for (const toolName of BUILTIN_PATH_TOOLS) {
       const request = await buildRequest(toolName, { path: "../outside.txt" }, project);
       assert.equal(request.bodyKind, "path");
-      assert.ok(
-        request.externalDirectoryPath,
+      assert.equal(
+        request.isExternalDirectory,
+        true,
         `${toolName} should mark outside paths for external_directory`,
       );
     }
 
     const custom = await buildRequest("custom_fs", { path: "../outside.txt" }, project);
-    assert.equal(custom.bodyKind, "path");
-    assert.equal(custom.body.endsWith("/outside.txt"), true);
-    assert.equal(custom.externalDirectoryPath, undefined);
+    assert.equal(custom.bodyKind, "generic");
+    assert.equal(custom.body, JSON.stringify({ path: "../outside.txt" }));
+    assert.equal(custom.isExternalDirectory, undefined);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -36,15 +37,15 @@ test("external_directory marker is limited to built-in path tools", async () => 
 test("external_directory marker is absent for paths inside the working directory", async () => {
   const request = await buildRequest("write", { path: "inside.txt" }, process.cwd());
   assert.equal(request.bodyKind, "path");
-  assert.equal(request.externalDirectoryPath, undefined);
+  assert.equal(request.isExternalDirectory, false);
 });
 
-test("tool input cwd does not change path resolution", async () => {
+test("generic tools use stable full-input JSON as the body", async () => {
   const request = await buildRequest(
-    "custom_fs",
-    { path: "inside.txt", cwd: join(process.cwd(), "nested") },
+    "mcp",
+    { name: "search", z: 1, a: "two" },
     process.cwd(),
   );
-  assert.equal(request.body.endsWith("/inside.txt"), true);
-  assert.equal(request.body.includes("/nested/"), false);
+  assert.equal(request.bodyKind, "generic");
+  assert.equal(request.body, JSON.stringify({ a: "two", name: "search", z: 1 }));
 });

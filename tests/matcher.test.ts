@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   findLastWildcardMatch,
-  hasUnescapedWildcard,
   isMatchEverythingPattern,
   matchesWildcard,
 } from "../src/matcher.ts";
@@ -52,9 +51,7 @@ test("last matching bash rule wins", () => {
   });
 });
 
-test("wildcard helpers distinguish escaped wildcards", () => {
-  assert.equal(hasUnescapedWildcard("git *"), true);
-  assert.equal(hasUnescapedWildcard("git \\*"), false);
+test("match-everything patterns distinguish escaped wildcards", () => {
   assert.equal(isMatchEverythingPattern("*"), true);
   assert.equal(isMatchEverythingPattern("**"), true);
   assert.equal(isMatchEverythingPattern("*?*"), true);

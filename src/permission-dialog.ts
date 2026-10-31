@@ -1,14 +1,23 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
-  ALLOW_ALWAYS,
+  ALLOW_ALWAYS_EXACT,
+  ALLOW_ALWAYS_WILDCARD,
   ALLOW_ONCE,
-  MAX_DIALOG_TITLE_LENGTH,
+  REJECT,
+} from "./constants.ts";
+import type {
+  PermissionDialogSelection,
+  PermissionRequest,
+  PolicyResolution,
+} from "./types.ts";
+import {
+  formatAllowAlwaysOption,
   PERMISSION_DIALOG_QUESTION,
   PERMISSION_DIALOG_TITLE,
-  PERMISSION_OPTIONS,
-  PURPOSE_LABEL,
-} from "./constants.ts";
-import type { PermissionDialogSelection } from "./types.ts";
+  PURPOSE_PREFIX,
+} from "./ui-strings.ts";
+
+const MAX_DIALOG_TITLE_LENGTH = 4000;
 
 function truncateTitle(title: string, limit = MAX_DIALOG_TITLE_LENGTH): string {
   return title.length > limit ? `${title.slice(0, limit)}...` : title;
@@ -19,25 +28,31 @@ function truncateTitle(title: string, limit = MAX_DIALOG_TITLE_LENGTH): string {
  */
 export async function promptForPermission(
   ctx: ExtensionContext,
+  request: PermissionRequest,
+  policy: PolicyResolution,
   summary: string,
   purpose?: string,
 ): Promise<PermissionDialogSelection> {
   // if there's no ui, just reject
   if (!ctx.hasUI) {return { kind: "reject" };}
 
-  const purposeLine = purpose ? `\n\n${PURPOSE_LABEL}: ${purpose}` : "";
+  const purposeLine = purpose ? `\n${PURPOSE_PREFIX}${purpose}` : "";
   const title = truncateTitle(
-    `${PERMISSION_DIALOG_TITLE}\n\n${summary}${purposeLine}\n\n${PERMISSION_DIALOG_QUESTION}`,
+    `${PERMISSION_DIALOG_TITLE}\n${summary}${purposeLine}\n${PERMISSION_DIALOG_QUESTION}`,
   );
+
+  const options = [ALLOW_ONCE, formatAllowAlwaysOption(request, policy), REJECT];
 
   let choice: string | undefined;
   try {
-    choice = await ctx.ui.select(title, [...PERMISSION_OPTIONS]);
+    choice = await ctx.ui.select(title, options);
   } catch {
     return { kind: "reject" };
   }
 
   if (choice === ALLOW_ONCE) {return { kind: "once" };}
-  if (choice === ALLOW_ALWAYS) {return { kind: "always" };}
+  if (choice === ALLOW_ALWAYS_EXACT || choice === ALLOW_ALWAYS_WILDCARD) {
+    return { kind: "always" };
+  }
   return { kind: "reject" };
 }

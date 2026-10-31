@@ -3,27 +3,35 @@ import { join } from "node:path";
 
 import { clearPurposeCache, generateRequestPurpose } from "./ai-purpose.ts";
 import { generateBashWildcard } from "./ai-wildcard.ts";
+import { clearWildcardCache } from "./matcher.ts";
 import {
   ALLOW,
-  BROAD_WILDCARD_TITLE,
   CONFIG_FILENAME,
   CONFIG_WARNING_PREFIX,
   DENY,
-  INVALID_WILDCARD_PREFIX,
   MAX_CONFIG_WARNINGS,
-  REJECT_FOLLOW_UP_MESSAGE,
-  STATUS_GENERATING_WILDCARD,
   STATUS_KEY,
-  STATUS_SUMMARIZING_REQUEST,
-  WILDCARD_EDITOR_TITLE,
 } from "./constants.ts";
 import { loadMergedConfig } from "./config.ts";
 import { promptForPermission } from "./permission-dialog.ts";
-import { findSessionApproval, resolvePolicy } from "./policy.ts";
+import { findSessionApproval, resolvePolicy, willGenerateBashWildcard } from "./policy.ts";
+import {
+  buildPurposePromptContext,
+  formatDenyReason,
+  formatNoUiReason,
+  formatRejectReason,
+} from "./prompts.ts";
 import { buildRequest } from "./request-builder.ts";
 import { SessionApprovalStore } from "./session-approvals.ts";
-import { formatDenyReason, formatNoUiReason, formatRejectReason } from "./string-formatters.ts";
-import { buildRequestSummary } from "./summaries.ts";
+import {
+  BROAD_WILDCARD_TITLE,
+  buildSelectorSummary,
+  formatBroadWildcardConfirm,
+  INVALID_WILDCARD_PREFIX,
+  STATUS_GENERATING_WILDCARD,
+  STATUS_SUMMARIZING_REQUEST,
+  WILDCARD_EDITOR_TITLE,
+} from "./ui-strings.ts";
 import { validateWildcardSuggestion } from "./wildcard-validation.ts";
 import {
   type PermissionConfig,
@@ -78,9 +86,8 @@ async function chooseAlwaysRule(
   ctx: ExtensionContext,
   request: PermissionRequest,
   policy: PolicyResolution,
-  summary: string,
 ): Promise<AllowAlwaysRule | undefined> {
-  if (request.externalDirectoryPath && policy.source === "external") {
+  if (request.isExternalDirectory && policy.source === "external") {
     return {
       scope: "external_directory",
       tool: request.toolName,
@@ -89,24 +96,22 @@ async function chooseAlwaysRule(
     };
   }
 
-  if (request.toolName !== "bash") {
+  // no wildcard
+  if (!willGenerateBashWildcard(request, policy)) {
     return { scope: "tool", tool: request.toolName, kind: "exact", body: request.body };
   }
 
-  if (policy.chainedBash) {
-    return { scope: "tool", tool: "bash", kind: "exact", body: request.body };
-  }
-
+  // generate wildcard
   ctx.ui.setStatus(STATUS_KEY, STATUS_GENERATING_WILDCARD);
   let suggestion: string | undefined;
   try {
-    suggestion = await generateBashWildcard(ctx, request.body, summary);
+    suggestion = await generateBashWildcard(ctx, request.body);
   } finally {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
 
+  // show wildcard editor
   let initial = suggestion ?? request.body;
-
   while (true) {
     const edited = await ctx.ui.editor(WILDCARD_EDITOR_TITLE, initial);
     if (edited === undefined) {return undefined;}
@@ -122,7 +127,7 @@ async function chooseAlwaysRule(
     if (validation.broad) {
       const confirmed = await ctx.ui.confirm(
         BROAD_WILDCARD_TITLE,
-        `This pattern can match many commands:\n\n${pattern}\n\nSave it for this session?`,
+        formatBroadWildcardConfirm(pattern),
       );
       if (!confirmed) {
         initial = pattern;
@@ -134,31 +139,9 @@ async function chooseAlwaysRule(
       scope: "tool",
       tool: "bash",
       kind: "wildcard",
-      pattern,
+      body: pattern,
     };
   }
-}
-
-/**
- * Rejects the request and instructs the agent to follow up.
- */
-async function rejectRequest(
-  pi: ExtensionAPI,
-  ctx: ExtensionContext,
-  request: PermissionRequest,
-): Promise<{ block: true; reason: string }> {
-  const reason = formatRejectReason(request);
-  try {
-    ctx.abort();
-  } catch {
-    // Best effort. The block reason still instructs the agent.
-  }
-  try {
-    pi.sendUserMessage(REJECT_FOLLOW_UP_MESSAGE, { deliverAs: "followUp" });
-  } catch {
-    // The block reason remains the fallback when a follow-up cannot be queued.
-  }
-  return { block: true, reason };
 }
 
 /**
@@ -182,6 +165,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
   pi.on("session_start", async (_event, ctx) => {
     state.approvals.clear();
     clearPurposeCache();
+    clearWildcardCache();
     state.config = undefined;
     state.configCwd = undefined;
     state.config = await ensureConfig(ctx);
@@ -191,6 +175,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
   pi.on("session_shutdown", () => {
     state.approvals.clear();
     clearPurposeCache();
+    clearWildcardCache();
   });
 
   // tool called
@@ -213,35 +198,38 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     const sessionRequest =
       policy.source === "external"
         ? request
-        : { ...request, externalDirectoryPath: undefined };
+        : { ...request, isExternalDirectory: false };
     const approval = findSessionApproval(
       state.approvals.getRules(),
       sessionRequest,
-      policy.chainedBash,
+      policy.isChainedBash,
     );
     if (approval) {return undefined;} // approved, proceed
 
-    // generate the request message
-    const summary = buildRequestSummary(request, policy);
+    const summary = buildSelectorSummary(request);
     ctx.ui.setStatus(STATUS_KEY, STATUS_SUMMARIZING_REQUEST);
     let purpose: string | undefined;
     try {
-      purpose = await generateRequestPurpose(ctx, request, summary);
+      purpose = await generateRequestPurpose(
+        ctx,
+        request,
+        buildPurposePromptContext(request, policy),
+      );
     } finally {
       ctx.ui.setStatus(STATUS_KEY, undefined);
     }
 
     while (true) {
-      const choice = await promptForPermission(ctx, summary, purpose);
+      const choice = await promptForPermission(ctx, request, policy, summary, purpose);
       if (choice.kind === "once") { // approved, proceed
         return;
       }
       if (choice.kind === "reject") { // rejected
-        return await rejectRequest(pi, ctx, request);
+        return { block: true, reason: formatRejectReason(request) };
       }
 
       // "allow always"
-      const rule = await chooseAlwaysRule(ctx, request, policy, summary);
+      const rule = await chooseAlwaysRule(ctx, request, policy);
       if (!rule) {
         // the user cancelled the wildcard editor, return to the permission dialog
         continue;

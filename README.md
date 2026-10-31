@@ -9,7 +9,7 @@ Roughly based on [MasuRii/pi-permission-system](https://github.com/MasuRii/pi-pe
 
 A permission can be one of the following:
 
-```json
+```jsonc
 "allow"  // allows the action
 "ask"  // asks the user for permission
 "deny"  // automatically denies the action
@@ -18,8 +18,8 @@ A permission can be one of the following:
 Ask states the purpose of the request and gives the following options:
 
 ```
-Allow once
-Allow always
+Allow Once
+Allow Always
 Reject
 ```
 
@@ -29,7 +29,7 @@ Reject
 
 ## Configuration
 
-The supported top-level keys are: `default`, `tools`, `bash`, and `e`.
+The supported top-level keys are: `default`, `tools`, `bash`, and `external_directory`.
 
 `bash` body matching supports wildcard:
 - `*` matches any sequence and `?` matches one character
@@ -111,6 +111,7 @@ Body content:
 
 - For built-in path tools, it is the path
 - For bash, it is the command
+- For other tools, it is a stable JSON serialization of the full input
 
 Body matching rules:
 

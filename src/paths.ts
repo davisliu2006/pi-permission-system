@@ -1,7 +1,6 @@
 import { realpath } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { homedir } from "node:os";
-import { toRecord } from "./types.ts";
 
 const PATH_TOOLS = new Set(["read", "write", "edit", "grep", "find", "ls"]);
 
@@ -20,28 +19,6 @@ export function isPathTool(toolName: string): boolean {
 }
 
 /**
- * Gets the tools path.
- */
-export function extractRawToolPath(toolName: string, input: unknown): string | undefined {
-  const record = toRecord(input);
-  if (!record) {
-    return isPathTool(toolName) ? "." : undefined;
-  }
-
-  const candidate =
-    typeof(record.path) === "string"
-      ? record.path
-      : typeof(record.file_path) === "string"
-        ? record.file_path
-        : typeof(record.filePath) === "string"
-          ? record.filePath
-          : undefined;
-
-  if (candidate && candidate.trim()) {return candidate;}
-  return isPathTool(toolName) ? "." : undefined;
-}
-
-/**
  * Expands "~" to the home directory.
  */
 export function expandHome(filePath: string): string {
@@ -53,19 +30,10 @@ export function expandHome(filePath: string): string {
 }
 
 /**
- * Normalizes the path to use '/' as a seperator.
+ * Normalizes the path to use '/' as a separator.
  */
 export function toPermissionPath(filePath: string): string {
   return filePath.split(sep).join("/");
-}
-
-/**
- * Normalizes path to be platform independent.
- * Note that Windows paths are case insensitive.
- */
-export function normalizePathForComparison(filePath: string): string {
-  const normalized = toPermissionPath(filePath);
-  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 
 /**

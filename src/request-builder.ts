@@ -1,32 +1,31 @@
-import { GENERIC_BODY_KEYS, MCP_FALLBACK_TARGET } from "./constants.ts";
-import { extractRawToolPath, isPathTool, resolveToolPath } from "./paths.ts";
+import { isPathTool, resolveToolPath } from "./paths.ts";
 import { hasShellChaining } from "./shell.ts";
+import type { PiToolInput } from "./types-pi.ts";
 import { toRecord, type PermissionRequest } from "./types.ts";
 
 /**
- * Derive the body for the MCP tool.
+ * Recursively sorts object keys for stable serialization.
  */
-function deriveMcpTarget(input: Record<string, unknown>): string {
-  if (typeof(input.tool) === "string" && input.tool.trim()) {return input.tool;}
-  if (typeof(input.server) === "string" && typeof(input.name) === "string") {
-    return `${input.server}:${input.name}`;
+function sortKeys(value: unknown): unknown {
+  if (typeof(value) !== "object") {return value;}
+  if (Array.isArray(value)) {return value.map(sortKeys);}
+  const record = toRecord(value)!;
+  const sorted: Record<string, unknown> = {};
+  for (const key of Object.keys(record).sort()) {
+    sorted[key] = sortKeys(record[key]);
   }
-  if (typeof(input.target) === "string" && input.target.trim()) {return input.target;}
-  if (typeof(input.name) === "string" && input.name.trim()) {return input.name;}
-  return MCP_FALLBACK_TARGET;
+  return sorted;
 }
 
 /**
- * Derive the body for a generic tool.
+ * Stable JSON body for tools without a known subject shape.
  */
-function deriveGenericBody(toolName: string, input: unknown): string {
-  const record = toRecord(input);
-  if (!record) {return toolName;}
-  for (const key of GENERIC_BODY_KEYS) {
-    const value = record[key];
-    if (typeof(value) === "string" && value.trim()) {return value;}
+function serializeGenericBody(input: PiToolInput): string {
+  try {
+    return JSON.stringify(sortKeys(input)) ?? "{}";
+  } catch {
+    return "{}";
   }
-  return toolName;
 }
 
 /**
@@ -34,50 +33,41 @@ function deriveGenericBody(toolName: string, input: unknown): string {
  */
 export async function buildRequest(
   toolName: string,
-  input: unknown,
+  input: PiToolInput,
   cwd: string,
 ): Promise<PermissionRequest> {
   if (toolName === "bash") {
-    const record = toRecord(input);
-    const command = record && typeof(record.command) === "string" ? record.command : "";
+    const command =
+      "command" in input && typeof(input.command) === "string" ? input.command : "";
     return {
       toolName,
       input,
       body: command,
       bodyKind: "command",
       cwd,
-      chainedBash: hasShellChaining(command),
+      isChainedBash: hasShellChaining(command),
     };
   }
 
-  const rawPath = extractRawToolPath(toolName, input);
-  if (rawPath !== undefined) {
+  if (isPathTool(toolName)) {
+    const rawPath =
+      "path" in input && typeof(input.path) === "string" ? input.path : ".";
     const resolved = await resolveToolPath(cwd, rawPath);
-    // only built-in path tools feed the external_directory guard
-    const externalDirectoryPath =
-      isPathTool(toolName) && resolved.outsideCwd ? resolved.permissionPath : undefined;
     return {
       toolName,
       input,
       body: resolved.permissionPath,
       bodyKind: "path",
       cwd,
-      normalizedPath: resolved.permissionPath,
-      externalDirectoryPath,
+      isExternalDirectory: resolved.outsideCwd,
     };
-  }
-
-  if (toolName === "mcp") {
-    const record = toRecord(input);
-    const target = record ? deriveMcpTarget(record) : MCP_FALLBACK_TARGET;
-    return { toolName, input, body: target, bodyKind: "target", cwd };
   }
 
   return {
     toolName,
     input,
-    body: deriveGenericBody(toolName, input),
-    bodyKind: "tool",
+    body: serializeGenericBody(input),
+    bodyKind: "generic",
     cwd,
   };
 }
