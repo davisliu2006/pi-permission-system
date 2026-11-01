@@ -72,12 +72,10 @@ export interface PolicyResolution {
 // other types
 
 export type AllowAlwaysRule = {
-  scope: "tool" | "external_directory";
   kind: "exact";
   tool: string;
   body: string;
 } | {
-  scope: "tool";
   kind: "wildcard";
   tool: "bash";
   body: string;

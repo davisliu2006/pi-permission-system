@@ -87,18 +87,9 @@ async function chooseAlwaysRule(
   request: PermissionRequest,
   policy: PolicyResolution
 ): Promise<AllowAlwaysRule | undefined> {
-  if (request.isExternalDirectory && policy.source === "external") {
-    return {
-      scope: "external_directory",
-      tool: request.toolName,
-      kind: "exact",
-      body: request.body,
-    };
-  }
-
   // no wildcard
   if (!willGenerateBashWildcard(request, policy)) {
-    return { scope: "tool", tool: request.toolName, kind: "exact", body: request.body };
+    return { kind: "exact", tool: request.toolName, body: request.body };
   }
 
   // generate wildcard
@@ -136,9 +127,8 @@ async function chooseAlwaysRule(
     }
 
     return {
-      scope: "tool",
-      tool: "bash",
       kind: "wildcard",
+      tool: "bash",
       body: pattern,
     };
   }
@@ -195,13 +185,9 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     }
 
     // check session approval
-    const sessionRequest =
-      policy.source === "external"
-        ? request
-        : { ...request, isExternalDirectory: false };
     const approval = findSessionApproval(
       state.approvals.getRules(),
-      sessionRequest,
+      request,
       policy.isChainedBash
     );
     if (approval) {return undefined;} // approved, proceed
