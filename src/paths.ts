@@ -75,7 +75,7 @@ async function resolvePathWithSymlink(absolutePath: string): Promise<string> {
  */
 export async function resolveToolPath(
   cwd: string,
-  rawPath: string,
+  rawPath: string
 ): Promise<ResolvedToolPath> {
   const absolute = resolve(cwd, expandHome(rawPath));
   const resolvedAbsolute = await resolvePathWithSymlink(absolute);

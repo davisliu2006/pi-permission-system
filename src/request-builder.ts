@@ -34,7 +34,7 @@ function serializeGenericBody(input: PiToolInput): string {
 export async function buildRequest(
   toolName: string,
   input: PiToolInput,
-  cwd: string,
+  cwd: string
 ): Promise<PermissionRequest> {
   if (toolName === "bash") {
     const command =

@@ -93,7 +93,7 @@ test("local bash rules move to the local position", () => {
         "git *": "allow",
       },
       external_directory: {},
-    },
+    }
   );
 
   assert.deepEqual(Object.keys(merged.bash), ["*", "rm -rf *", "git *"]);

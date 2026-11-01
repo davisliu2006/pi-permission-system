@@ -60,7 +60,7 @@ function createNewState(): ExtensionState {
 async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
   const { config, warnings } = await loadMergedConfig(
     join(getAgentDir(), CONFIG_FILENAME),
-    join(ctx.cwd, CONFIG_FILENAME),
+    join(ctx.cwd, CONFIG_FILENAME)
   );
 
   if (ctx.hasUI) {
@@ -71,7 +71,7 @@ async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
       const suppressed = warnings.length - MAX_CONFIG_WARNINGS;
       ctx.ui.notify(
         `${CONFIG_WARNING_PREFIX}${suppressed} additional config warning(s) suppressed.`,
-        "warning",
+        "warning"
       );
     }
   }
@@ -85,7 +85,7 @@ async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
 async function chooseAlwaysRule(
   ctx: ExtensionContext,
   request: PermissionRequest,
-  policy: PolicyResolution,
+  policy: PolicyResolution
 ): Promise<AllowAlwaysRule | undefined> {
   if (request.isExternalDirectory && policy.source === "external") {
     return {
@@ -127,7 +127,7 @@ async function chooseAlwaysRule(
     if (validation.broad) {
       const confirmed = await ctx.ui.confirm(
         BROAD_WILDCARD_TITLE,
-        formatBroadWildcardConfirm(pattern),
+        formatBroadWildcardConfirm(pattern)
       );
       if (!confirmed) {
         initial = pattern;
@@ -202,7 +202,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     const approval = findSessionApproval(
       state.approvals.getRules(),
       sessionRequest,
-      policy.isChainedBash,
+      policy.isChainedBash
     );
     if (approval) {return undefined;} // approved, proceed
 
@@ -213,7 +213,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
       purpose = await generateRequestPurpose(
         ctx,
         request,
-        buildPurposePromptContext(request, policy),
+        buildPurposePromptContext(request, policy)
       );
     } finally {
       ctx.ui.setStatus(STATUS_KEY, undefined);

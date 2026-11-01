@@ -12,7 +12,7 @@ import type {
  */
 function configuredToolState(
   config: PermissionConfig,
-  toolName: string,
+  toolName: string
 ): PermissionState | undefined {
   return Object.hasOwn(config.tools, toolName) ? config.tools[toolName] : undefined;
 }
@@ -29,7 +29,7 @@ function fallbackState(config: PermissionConfig, toolName: string): PermissionSt
  */
 export function resolvePolicy(
   config: PermissionConfig,
-  request: PermissionRequest,
+  request: PermissionRequest
 ): PolicyResolution {
   if (request.isExternalDirectory) { // external directory builtin tool
     const externalState = Object.hasOwn(config.external_directory, request.toolName)
@@ -87,7 +87,7 @@ export function resolvePolicy(
 export function findSessionApproval(
   rules: readonly AllowAlwaysRule[],
   request: PermissionRequest,
-  isChainedBash: boolean,
+  isChainedBash: boolean
 ): AllowAlwaysRule | undefined {
   const isExternal = request.isExternalDirectory === true;
 
@@ -136,7 +136,7 @@ export function describePolicy(policy: PolicyResolution): string {
  */
 export function willGenerateBashWildcard(
   request: PermissionRequest,
-  policy: PolicyResolution,
+  policy: PolicyResolution
 ): boolean {
   if (request.isExternalDirectory && policy.source === "external") {return false;}
   if (request.toolName !== "bash") {return false;}

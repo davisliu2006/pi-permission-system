@@ -103,11 +103,11 @@ test("session wildcard approvals do not apply to chained commands", () => {
 
   assert.equal(
     findSessionApproval(rules, bashRequest("git status --short"), false)?.kind,
-    "wildcard",
+    "wildcard"
   );
   assert.equal(
     findSessionApproval(rules, bashRequest("git status; rm -rf /"), true),
-    undefined,
+    undefined
   );
 });
 

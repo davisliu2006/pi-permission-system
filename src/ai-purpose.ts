@@ -41,7 +41,7 @@ function sanitizePurpose(value: string): string | undefined {
 export async function generateRequestPurpose(
   ctx: ExtensionContext,
   request: PermissionRequest,
-  context: string,
+  context: string
 ): Promise<string | undefined> {
   const key = cacheKey(request);
   const cached = purposeCache.get(key);

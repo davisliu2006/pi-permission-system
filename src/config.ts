@@ -22,7 +22,7 @@ function normalizeSection(
   raw: unknown,
   sectionName: string,
   configPath: string | undefined,
-  warnings: ConfigWarning[],
+  warnings: ConfigWarning[]
 ): PermissionSection {
   if (raw === undefined) {return {};}
   const record = toRecord(raw);
@@ -57,7 +57,7 @@ function normalizeSection(
 function normalizeConfig(
   rawConfig: unknown,
   configPath: string | undefined,
-  warnings: ConfigWarning[],
+  warnings: ConfigWarning[]
 ): PermissionConfig {
   const config = toRecord(rawConfig);
   if (!config) {
@@ -85,7 +85,7 @@ function normalizeConfig(
       config.external_directory,
       "external_directory",
       configPath,
-      warnings,
+      warnings
     ),
   };
 }
@@ -95,7 +95,7 @@ function normalizeConfig(
  */
 async function loadConfigFile(
   path: string,
-  warnings: ConfigWarning[],
+  warnings: ConfigWarning[]
 ): Promise<PermissionConfig | undefined> {
   let raw: string;
   try {
@@ -126,7 +126,7 @@ async function loadConfigFile(
  */
 function mergeBashSections(
   globalSection: PermissionSection,
-  localSection: PermissionSection,
+  localSection: PermissionSection
 ): PermissionSection {
   const merged = new Map<string, PermissionState>();
   for (const [pattern, state] of Object.entries(globalSection)) {
@@ -144,7 +144,7 @@ function mergeBashSections(
  */
 export function mergeConfigs(
   globalConfig: PermissionConfig | undefined,
-  localConfig: PermissionConfig | undefined,
+  localConfig: PermissionConfig | undefined
 ): PermissionConfig {
   if (!globalConfig && !localConfig) {
     return createDefaultPermissionConfig();
@@ -168,7 +168,7 @@ export function mergeConfigs(
  */
 export async function loadMergedConfig(
   globalPath: string,
-  localPath: string,
+  localPath: string
 ): Promise<{ config: PermissionConfig; warnings: ConfigWarning[] }> {
   const warnings: ConfigWarning[] = [];
   const globalConfig = await loadConfigFile(globalPath, warnings);

@@ -76,7 +76,7 @@ export function matchesWildcard(pattern: string, str: string): boolean {
  */
 export function findLastWildcardMatch(
   rules: Record<string, PermissionState>,
-  str: string,
+  str: string
 ): WildcardMatch | undefined {
   const entries = Object.entries(rules);
   for (let i = entries.length - 1; i >= 0; i--) {

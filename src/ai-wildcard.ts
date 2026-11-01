@@ -30,7 +30,7 @@ function sanitizeWildcard(value: string): string | undefined {
  */
 export async function generateBashWildcard(
   ctx: ExtensionContext,
-  command: string,
+  command: string
 ): Promise<string | undefined> {
   const text = await completeText(ctx, {
     systemPrompt: WILDCARD_SYSTEM_PROMPT,

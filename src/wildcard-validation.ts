@@ -9,7 +9,7 @@ import {
  */
 export function validateWildcardSuggestion(
   pattern: string,
-  command: string,
+  command: string
 ): { valid: true; broad: boolean } | { valid: false; reason: string } {
   if (!isValidWildcardPattern(pattern)) {
     return { valid: false, reason: "Pattern must be between 1 and 500 characters." };

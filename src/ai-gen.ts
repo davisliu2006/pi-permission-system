@@ -28,7 +28,7 @@ function timeoutSignal(signal: AbortSignal | undefined, timeoutMs: number): Abor
  */
 export async function completeText(
   ctx: ExtensionContext,
-  options: CompleteTextOptions,
+  options: CompleteTextOptions
 ): Promise<string | undefined> {
   if (!ctx.model) {return undefined;}
 
@@ -60,7 +60,7 @@ export async function completeText(
         headers: auth.headers,
         maxTokens: options.maxTokens,
         signal: timeoutSignal(ctx.signal, options.timeoutMs),
-      },
+      }
     );
 
     if (response.stopReason === "aborted") {return undefined;}

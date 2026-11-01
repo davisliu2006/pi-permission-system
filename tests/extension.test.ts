@@ -21,7 +21,7 @@ test("external_directory marker is limited to built-in path tools", async () => 
       assert.equal(
         request.isExternalDirectory,
         true,
-        `${toolName} should mark outside paths for external_directory`,
+        `${toolName} should mark outside paths for external_directory`
       );
     }
 
@@ -44,7 +44,7 @@ test("generic tools use stable full-input JSON as the body", async () => {
   const request = await buildRequest(
     "mcp",
     { name: "search", z: 1, a: "two" },
-    process.cwd(),
+    process.cwd()
   );
   assert.equal(request.bodyKind, "generic");
   assert.equal(request.body, JSON.stringify({ a: "two", name: "search", z: 1 }));

@@ -17,12 +17,6 @@ import {
   PURPOSE_PREFIX,
 } from "./ui-strings.ts";
 
-const MAX_DIALOG_TITLE_LENGTH = 4000;
-
-function truncateTitle(title: string, limit = MAX_DIALOG_TITLE_LENGTH): string {
-  return title.length > limit ? `${title.slice(0, limit)}...` : title;
-}
-
 /**
  * Shows permission dialog and gets input.
  */
@@ -31,16 +25,13 @@ export async function promptForPermission(
   request: PermissionRequest,
   policy: PolicyResolution,
   summary: string,
-  purpose?: string,
+  purpose?: string
 ): Promise<PermissionDialogSelection> {
   // if there's no ui, just reject
   if (!ctx.hasUI) {return { kind: "reject" };}
 
   const purposeLine = purpose ? `\n${PURPOSE_PREFIX}${purpose}` : "";
-  const title = truncateTitle(
-    `${PERMISSION_DIALOG_TITLE}\n${summary}${purposeLine}\n${PERMISSION_DIALOG_QUESTION}`,
-  );
-
+  const title = `${PERMISSION_DIALOG_TITLE}\n${summary}${purposeLine}\n${PERMISSION_DIALOG_QUESTION}`;
   const options = [ALLOW_ONCE, formatAllowAlwaysOption(request, policy), REJECT];
 
   let choice: string | undefined;

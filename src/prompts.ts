@@ -14,7 +14,7 @@ function preview(value: string, limit: number): string {
  */
 export function describeBlockedSubject(
   request: PermissionRequest,
-  includeGenericSubject: boolean,
+  includeGenericSubject: boolean
 ): string {
   if (request.bodyKind === "command") {
     return `bash command ${JSON.stringify(request.body)}`;
@@ -32,7 +32,7 @@ export function describeBlockedSubject(
  */
 export function buildPurposePromptContext(
   request: PermissionRequest,
-  policy: PolicyResolution,
+  policy: PolicyResolution
 ): string {
   const lines = [
     `Tool: ${request.toolName}`,
@@ -45,15 +45,15 @@ export function buildPurposePromptContext(
       lines.push(CHAINED_BASH_NOTE);
     }
   } else if (request.bodyKind === "path") {
-    lines.push(`Path: ${request.body}`);
+    lines.push(`Path: ${preview(request.body, 400)}`);
     if (request.isExternalDirectory) {
       lines.push(EXTERNAL_DIRECTORY_NOTE);
     }
   } else {
-    lines.push(`Input: ${preview(request.body, 400)}`);
+    lines.push(`Input: ${preview(request.body, 600)}`);
   }
 
-  return preview(lines.join("\n"), 1200);
+  return lines.join("\n");
 }
 
 export const PURPOSE_SYSTEM_PROMPT = [

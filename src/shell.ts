@@ -1,9 +1,11 @@
 /**
  * Conservative shell-chaining detector.
- *
- * This is not a shell parser. It is intentionally biased toward returning true
- * when the command contains syntax that can start another command or perform
- * command substitution.
+ * This is not a parser and is biased toward returning true.
+ * 
+ * Guards against:
+ * - Substitutions like `command` and $(command)
+ * - Chaining like ;, &&, ||, \n, and \r
+ * - Parentheses
  */
 export function hasShellChaining(command: string): boolean {
   let quote: "'" | '"' | undefined;
@@ -12,12 +14,12 @@ export function hasShellChaining(command: string): boolean {
   while (index < command.length) {
     const character = command[index]!;
 
+    // inside quote
     if (quote === "'") {
       if (character === "'") {quote = undefined;}
-      index += 1;
+      index++;
       continue;
     }
-
     if (quote === '"') {
       if (character === "\\") {
         index += 2;
@@ -25,29 +27,30 @@ export function hasShellChaining(command: string): boolean {
       }
       if (character === '"') {
         quote = undefined;
-        index += 1;
+        index++;
         continue;
       }
       if (character === "`") {return true;}
       if (character === "$" && command[index + 1] === "(") {return true;}
-      index += 1;
+      index++;
       continue;
     }
 
+    // escape character
     if (character === "\\") {
       index += 2;
       continue;
     }
-
+  
+    // strat quote
     if (character === "'") {
       quote = "'";
-      index += 1;
+      index++;
       continue;
     }
-
     if (character === '"') {
       quote = '"';
-      index += 1;
+      index++;
       continue;
     }
 
@@ -57,7 +60,7 @@ export function hasShellChaining(command: string): boolean {
     if (character === "\n" || character === "\r") {return true;}
     if (character === "(" || character === ")") {return true;}
 
-    index += 1;
+    index++;
   }
 
   // Unterminated quotes are unsafe to reason about.

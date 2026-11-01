@@ -1,5 +1,5 @@
 {
-  "name": "pi-permission-system",
+  "name": "@davisliu2006/pi-permission-system",
   "version": "0.1.0",
   "description": "Permission enforcement extension for the Pi coding agent.",
   "type": "module",
@@ -23,7 +23,12 @@
     "pi-extension",
     "permissions"
   ],
+  "author": "davisliu2006",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/davisliu2006/pi-permission-system.git"
+  },
   "pi": {
     "extensions": [
       "./index.ts"
