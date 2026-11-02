@@ -2,7 +2,6 @@ import { readFile } from "node:fs/promises";
 import { ASK, PERMISSION_STATES_DESCRIPTION } from "./constants.ts";
 import { parseJsonc } from "./jsonc.ts";
 import {
-  DEFAULT_PERMISSION_CONFIG,
   createDefaultPermissionConfig,
   toPermissionState,
   toRecord,
@@ -150,7 +149,7 @@ export function mergeConfigs(
     return createDefaultPermissionConfig();
   }
 
-  globalConfig = globalConfig ?? DEFAULT_PERMISSION_CONFIG;
+  globalConfig = globalConfig ?? createDefaultPermissionConfig();
 
   return {
     default: localConfig?.default ?? globalConfig.default,

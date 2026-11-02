@@ -3,10 +3,10 @@ import test from "node:test";
 
 import {
   findSessionApproval,
+  resolveAllowAlwaysMode,
   resolvePolicy,
-  willGenerateBashWildcard,
-  willGenerateBashWildcardList,
 } from "../src/policy.ts";
+import { analyzeShellCommand } from "../src/shell.ts";
 import type {
   PermissionConfig,
   PermissionRequest,
@@ -21,14 +21,14 @@ const baseConfig: PermissionConfig = {
   external_directory: {},
 };
 
-function bashRequest(command: string, isChainedBash = false): PermissionRequest {
+function bashRequest(command: string): PermissionRequest {
   return {
     toolName: "bash",
     input: { command },
     body: command,
     bodyKind: "command",
     cwd: "/project",
-    isChainedBash,
+    bashAnalysis: analyzeShellCommand(command),
   };
 }
 
@@ -62,23 +62,19 @@ test("list sequences match each segment with worst state winning", () => {
   const allowed = resolvePolicy(config, bashRequest("git status; git log"));
   assert.equal(allowed.state, "allow");
   assert.equal(allowed.source, "bash");
-  assert.equal(allowed.isChainedBash, false);
 
   const andAllowed = resolvePolicy(config, bashRequest("git status && git log"));
   assert.equal(andAllowed.state, "allow");
-  assert.equal(andAllowed.isChainedBash, false);
 
   const orDenied = resolvePolicy(config, bashRequest("git status || rm -rf /"));
   assert.equal(orDenied.state, "deny");
   assert.equal(orDenied.source, "bash");
   assert.equal(orDenied.matchedPattern, "rm *");
-  assert.equal(orDenied.isChainedBash, false);
 
   const denied = resolvePolicy(config, bashRequest("git status; rm -rf /"));
   assert.equal(denied.state, "deny");
   assert.equal(denied.source, "bash");
   assert.equal(denied.matchedPattern, "rm *");
-  assert.equal(denied.isChainedBash, false);
 });
 
 test("newline sequences are matched like other list sequences", () => {
@@ -106,10 +102,11 @@ test("complex chained commands skip bash patterns and fall back to tools.bash", 
     },
   };
 
-  const policy = resolvePolicy(config, bashRequest("git status | sh"));
+  const request = bashRequest("git status | sh");
+  const policy = resolvePolicy(config, request);
   assert.equal(policy.state, "ask");
   assert.equal(policy.source, "tool");
-  assert.equal(policy.isChainedBash, true);
+  assert.equal(request.bashAnalysis?.isComplex, true);
 });
 
 test("complex chained commands fall back to default when tools.bash is absent", () => {
@@ -120,10 +117,11 @@ test("complex chained commands fall back to default when tools.bash is absent", 
     external_directory: {},
   };
 
-  const policy = resolvePolicy(config, bashRequest("git status | sh"));
+  const request = bashRequest("git status | sh");
+  const policy = resolvePolicy(config, request);
   assert.equal(policy.state, "deny");
   assert.equal(policy.source, "default");
-  assert.equal(policy.isChainedBash, true);
+  assert.equal(request.bashAnalysis?.isComplex, true);
 });
 
 test("external directory rules replace the normal tool policy", () => {
@@ -153,11 +151,11 @@ test("session wildcard approvals do not apply to complex chained commands", () =
   ];
 
   assert.equal(
-    findSessionApproval(rules, bashRequest("git status --short"), false)?.kind,
+    findSessionApproval(rules, bashRequest("git status --short"))?.kind,
     "wildcard"
   );
   assert.equal(
-    findSessionApproval(rules, bashRequest("git status | sh"), true),
+    findSessionApproval(rules, bashRequest("git status | sh")),
     undefined
   );
 });
@@ -168,7 +166,7 @@ test("session exact approvals apply to complex chained commands", () => {
     { tool: "bash", kind: "exact", body: command },
   ];
 
-  assert.equal(findSessionApproval(rules, bashRequest(command), true)?.kind, "exact");
+  assert.equal(findSessionApproval(rules, bashRequest(command))?.kind, "exact");
 });
 
 test("session approvals require every list segment to match", () => {
@@ -181,15 +179,15 @@ test("session approvals require every list segment to match", () => {
   ];
 
   assert.equal(
-    findSessionApproval(statusOnly, bashRequest("git status && git log"), false),
+    findSessionApproval(statusOnly, bashRequest("git status && git log")),
     undefined
   );
   assert.equal(
-    findSessionApproval(statusAndLog, bashRequest("git status && git log"), false)?.kind,
+    findSessionApproval(statusAndLog, bashRequest("git status && git log"))?.kind,
     "wildcard"
   );
   assert.equal(
-    findSessionApproval(statusAndLog, bashRequest("git status; git log"), false)?.kind,
+    findSessionApproval(statusAndLog, bashRequest("git status; git log"))?.kind,
     "wildcard"
   );
 });
@@ -200,21 +198,21 @@ test("session exact full-command approvals still cover list sequences", () => {
     { tool: "bash", kind: "exact", body: command },
   ];
 
-  assert.equal(findSessionApproval(rules, bashRequest(command), false)?.kind, "exact");
+  assert.equal(findSessionApproval(rules, bashRequest(command))?.kind, "exact");
 });
 
-test("wildcard allow-always paths distinguish one vs many segments", () => {
-  const ask: PolicyResolution = { state: "ask", source: "tool", isChainedBash: false };
-  const complex: PolicyResolution = { state: "ask", source: "tool", isChainedBash: true };
+test("allow-always mode distinguishes one vs many segments", () => {
+  const ask: PolicyResolution = { state: "ask", source: "tool" };
 
-  assert.equal(willGenerateBashWildcard(bashRequest("git status"), ask), true);
-  assert.equal(willGenerateBashWildcardList(bashRequest("git status"), ask), false);
-
-  assert.equal(willGenerateBashWildcard(bashRequest("git status && git log"), ask), false);
-  assert.equal(willGenerateBashWildcardList(bashRequest("git status && git log"), ask), true);
-
-  assert.equal(willGenerateBashWildcard(bashRequest("git status | sh"), complex), false);
-  assert.equal(willGenerateBashWildcardList(bashRequest("git status | sh"), complex), false);
+  assert.equal(resolveAllowAlwaysMode(bashRequest("git status"), ask), "wildcard");
+  assert.equal(
+    resolveAllowAlwaysMode(bashRequest("git status && git log"), ask),
+    "wildcard-list"
+  );
+  assert.equal(
+    resolveAllowAlwaysMode(bashRequest("git status | sh"), ask),
+    "exact"
+  );
 });
 
 test("session exact path approvals match by tool and body only", () => {
@@ -231,13 +229,9 @@ test("session exact path approvals match by tool and body only", () => {
     { tool: "write", kind: "exact", body: "/outside/file.txt" },
   ];
 
-  assert.equal(findSessionApproval(rules, request, false)?.kind, "exact");
+  assert.equal(findSessionApproval(rules, request)?.kind, "exact");
   assert.equal(
-    findSessionApproval(
-      rules,
-      { ...request, isExternalDirectory: false },
-      false
-    )?.kind,
+    findSessionApproval(rules, { ...request, isExternalDirectory: false })?.kind,
     "exact"
   );
 });

@@ -1,6 +1,7 @@
 import { findLastWildcardMatch, matchesWildcard } from "./matcher.ts";
-import { analyzeShellCommand } from "./shell.ts";
+import { analyzeShellCommand, type ShellCommandAnalysis } from "./shell.ts";
 import type {
+  AllowAlwaysMode,
   AllowAlwaysRule,
   PermissionConfig,
   PermissionRequest,
@@ -14,24 +15,28 @@ const STATE_RANK: Record<PermissionState, number> = {
   deny: 2,
 };
 
-function configuredBashToolState(
+/**
+ * Prefers the analysis stored on the request.
+ * Falls back for hand-built fixtures.
+ */
+function bashAnalysisOf(request: PermissionRequest): ShellCommandAnalysis {
+  return request.bashAnalysis ?? analyzeShellCommand(request.body);
+}
+
+/**
+ * The general permission state for bash.
+ */
+function generalBashToolState(
   config: PermissionConfig
 ): PermissionState | undefined {
   return Object.hasOwn(config.tools, "bash") ? config.tools.bash : undefined;
 }
 
-function bashFallbackState(config: PermissionConfig): PermissionState {
-  return configuredBashToolState(config) ?? config.default;
-}
-
-function bashFallbackResolution(
-  config: PermissionConfig,
-  isChainedBash: boolean
-): PolicyResolution {
+function bashFallbackResolution(config: PermissionConfig): PolicyResolution {
+  const toolState = generalBashToolState(config);
   return {
-    state: bashFallbackState(config),
-    source: configuredBashToolState(config) ? "tool" : "default",
-    isChainedBash,
+    state: toolState ?? config.default,
+    source: toolState ? "tool" : "default",
   };
 }
 
@@ -48,10 +53,9 @@ function resolveBashSegment(
       state: match.state,
       source: "bash",
       matchedPattern: match.pattern,
-      isChainedBash: false,
     };
   }
-  return bashFallbackResolution(config, false);
+  return bashFallbackResolution(config);
 }
 
 /**
@@ -78,12 +82,10 @@ export function resolveBashPolicy(
   config: PermissionConfig,
   request: PermissionRequest
 ): PolicyResolution {
-  const analysis = analyzeShellCommand(request.body);
+  const analysis = bashAnalysisOf(request);
   if (analysis.isComplex) {
-    // pipes / substitutions / etc. - skip bash patterns
-    return bashFallbackResolution(config, true);
+    return bashFallbackResolution(config);
   }
-
   const resolutions = analysis.segments.map((segment) =>
     resolveBashSegment(config, segment)
   );
@@ -114,8 +116,7 @@ function findBashSegmentSessionApproval(
  */
 export function findBashSessionApproval(
   rules: readonly AllowAlwaysRule[],
-  request: PermissionRequest,
-  isChainedBash: boolean
+  request: PermissionRequest
 ): AllowAlwaysRule | undefined {
   // check full exact match first
   for (let index = rules.length - 1; index >= 0; index--) {
@@ -125,10 +126,10 @@ export function findBashSessionApproval(
     }
   }
 
-  if (isChainedBash) {return undefined;} // chained only has full exact match
+  const analysis = bashAnalysisOf(request);
+  if (analysis.isComplex) {return undefined;} // complex only has full exact match
 
   // check segments with wildcard / exact
-  const analysis = analyzeShellCommand(request.body);
   let lastMatch: AllowAlwaysRule | undefined;
   for (const segment of analysis.segments) {
     const match = findBashSegmentSessionApproval(rules, segment);
@@ -138,44 +139,19 @@ export function findBashSessionApproval(
   return lastMatch;
 }
 
-function bashWildcardAnalysis(
-  request: PermissionRequest,
-  policy: PolicyResolution
-): { isComplex: boolean; segments: string[] } | undefined {
-  if (request.isExternalDirectory && policy.source === "external") {return undefined;}
-  if (request.toolName !== "bash") {return undefined;}
-  if (policy.isChainedBash) {return undefined;}
-  return analyzeShellCommand(request.body);
-}
-
 /**
- * True when "Allow Always" will generate one bash wildcard for a single command.
+ * How "allow always" should persist this request for the session.
  */
-export function willGenerateBashWildcard(
+export function resolveAllowAlwaysMode(
   request: PermissionRequest,
   policy: PolicyResolution
-): boolean {
-  const analysis = bashWildcardAnalysis(request, policy);
-  return analysis !== undefined && !analysis.isComplex && analysis.segments.length === 1;
-}
+): AllowAlwaysMode {
+  if (request.isExternalDirectory && policy.source === "external") {return "exact";}
+  if (request.toolName !== "bash") {return "exact";}
 
-/**
- * True when "Allow Always" will generate one bash wildcard per list segment.
- */
-export function willGenerateBashWildcardList(
-  request: PermissionRequest,
-  policy: PolicyResolution
-): boolean {
-  const analysis = bashWildcardAnalysis(request, policy);
-  return analysis !== undefined && !analysis.isComplex && analysis.segments.length > 1;
-}
-
-/**
- * True when "Allow Always" uses any bash wildcard path (one or many).
- */
-export function usesBashWildcardAllowAlways(
-  request: PermissionRequest,
-  policy: PolicyResolution
-): boolean {
-  return willGenerateBashWildcard(request, policy) || willGenerateBashWildcardList(request, policy);
+  const analysis = bashAnalysisOf(request);
+  if (analysis.isComplex) {return "exact";}
+  if (analysis.segments.length > 1) {return "wildcard-list";}
+  if (analysis.segments.length === 1) {return "wildcard";}
+  return "exact";
 }

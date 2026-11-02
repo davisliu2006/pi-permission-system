@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { analyzeShellCommand, hasShellChaining } from "../src/shell.ts";
+import { analyzeShellCommand } from "../src/shell.ts";
 
 test("detects complex shell syntax", () => {
   for (const command of [
@@ -12,7 +12,6 @@ test("detects complex shell syntax", () => {
     "git status `rm -rf /`",
     "git status <(rm -rf /)",
   ]) {
-    assert.equal(hasShellChaining(command), true, command);
     assert.equal(analyzeShellCommand(command).isComplex, true, command);
   }
 });
@@ -32,7 +31,6 @@ test("simple commands and list sequences are not complex", () => {
     "git status\ngit log",
     "git status\r\ngit log",
   ]) {
-    assert.equal(hasShellChaining(command), false, command);
     assert.equal(analyzeShellCommand(command).isComplex, false, command);
   }
 });
@@ -77,11 +75,11 @@ test("splits simple sequences on list separators and newlines", () => {
 });
 
 test("command substitution inside double quotes is complex", () => {
-  assert.equal(hasShellChaining('echo "$(rm -rf /)"'), true);
-  assert.equal(hasShellChaining('echo "`rm -rf /`"'), true);
+  assert.equal(analyzeShellCommand('echo "$(rm -rf /)"').isComplex, true);
+  assert.equal(analyzeShellCommand('echo "`rm -rf /`"').isComplex, true);
 });
 
 test("unterminated quotes are treated as complex", () => {
-  assert.equal(hasShellChaining("echo 'unterminated"), true);
-  assert.equal(hasShellChaining('echo "unterminated'), true);
+  assert.equal(analyzeShellCommand("echo 'unterminated").isComplex, true);
+  assert.equal(analyzeShellCommand('echo "unterminated').isComplex, true);
 });

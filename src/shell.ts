@@ -127,11 +127,3 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
     segments: segments.length > 0 ? segments : [""],
   };
 }
-
-/**
- * True when the command has complex shell syntax we refuse to split/match.
- * Simple `;` / `&&` / `||` / newline sequences are not treated as complex.
- */
-export function hasShellChaining(command: string): boolean {
-  return analyzeShellCommand(command).isComplex;
-}

@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   splitWildcardList,
   validateWildcardSuggestion,
-  validateWildcardSuggestions,
+  validateWildcardSuggestionList,
 } from "../src/wildcard-validation.ts";
 
 test("accepts wildcard patterns that match the command", () => {
@@ -44,7 +44,7 @@ test("splitWildcardList trims semicolon-separated patterns", () => {
 
 test("validateWildcardSuggestions accepts aligned pattern lists", () => {
   assert.deepEqual(
-    validateWildcardSuggestions("git status*; git log*", [
+    validateWildcardSuggestionList("git status*; git log*", [
       "git status --short",
       "git log -1",
     ]),
@@ -57,7 +57,7 @@ test("validateWildcardSuggestions accepts aligned pattern lists", () => {
 });
 
 test("validateWildcardSuggestions rejects count mismatches", () => {
-  const result = validateWildcardSuggestions("git status*", [
+  const result = validateWildcardSuggestionList("git status*", [
     "git status --short",
     "git log -1",
   ]);
@@ -66,7 +66,7 @@ test("validateWildcardSuggestions rejects count mismatches", () => {
 
 test("validateWildcardSuggestions reports broad patterns", () => {
   assert.deepEqual(
-    validateWildcardSuggestions("*; git log*", ["git status --short", "git log -1"]),
+    validateWildcardSuggestionList("*; git log*", ["git status --short", "git log -1"]),
     {
       valid: true,
       patterns: ["*", "git log*"],

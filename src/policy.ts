@@ -10,11 +10,7 @@ import type {
   AllowAlwaysRule,
 } from "./types.ts";
 
-export {
-  willGenerateBashWildcard,
-  willGenerateBashWildcardList,
-  usesBashWildcardAllowAlways,
-} from "./policy-bash.ts";
+export { resolveAllowAlwaysMode } from "./policy-bash.ts";
 
 /**
  * Returns the permission for that tool if specified in the config.
@@ -42,7 +38,6 @@ export function resolvePolicy(
         state: externalState,
         source: "external",
         matchedPattern: request.toolName,
-        isChainedBash: false,
       };
     }
   }
@@ -56,7 +51,6 @@ export function resolvePolicy(
   return {
     state: toolState ?? config.default,
     source: toolState ? "tool" : "default",
-    isChainedBash: false,
   };
 }
 
@@ -65,11 +59,10 @@ export function resolvePolicy(
  */
 export function findSessionApproval(
   rules: readonly AllowAlwaysRule[],
-  request: PermissionRequest,
-  isChainedBash: boolean
+  request: PermissionRequest
 ): AllowAlwaysRule | undefined {
   if (request.toolName === "bash") {
-    return findBashSessionApproval(rules, request, isChainedBash);
+    return findBashSessionApproval(rules, request);
   }
 
   for (let index = rules.length - 1; index >= 0; index--) {

@@ -8,7 +8,7 @@ import {
 } from "./prompts.ts";
 import {
   validateWildcardSuggestion,
-  validateWildcardSuggestions,
+  validateWildcardSuggestionList,
 } from "./wildcard-validation.ts";
 
 const WILDCARD_TIMEOUT_MS = 8000;
@@ -81,7 +81,7 @@ export async function generateBashWildcards(
   const sanitized = sanitizeWildcard(text);
   if (!sanitized) {return undefined;}
 
-  const validation = validateWildcardSuggestions(sanitized, commands);
+  const validation = validateWildcardSuggestionList(sanitized, commands);
   if (!validation.valid) {return undefined;}
 
   return validation.patterns;

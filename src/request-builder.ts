@@ -45,7 +45,7 @@ export async function buildRequest(
       body: command,
       bodyKind: "command",
       cwd,
-      isChainedBash: analyzeShellCommand(command).isComplex,
+      bashAnalysis: analyzeShellCommand(command),
     };
   }
 

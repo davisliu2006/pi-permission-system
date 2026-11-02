@@ -2,10 +2,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 import { generateBashWildcard, generateBashWildcards } from "./ai-wildcard.ts";
 import { STATUS_KEY } from "./constants.ts";
-import {
-  willGenerateBashWildcard,
-  willGenerateBashWildcardList,
-} from "./policy-bash.ts";
+import { resolveAllowAlwaysMode } from "./policy-bash.ts";
 import { analyzeShellCommand } from "./shell.ts";
 import {
   BROAD_WILDCARD_TITLE,
@@ -18,7 +15,7 @@ import {
 } from "./ui-strings.ts";
 import {
   validateWildcardSuggestion,
-  validateWildcardSuggestions,
+  validateWildcardSuggestionList,
 } from "./wildcard-validation.ts";
 import type {
   AllowAlwaysRule,
@@ -27,9 +24,9 @@ import type {
 } from "./types.ts";
 
 /**
- * Single-command wildcard path (one LLM call, one editor).
+ * Single-command wildcard path.
  */
-async function chooseOneWildcardRule(
+async function chooseSingleWildcard(
   ctx: ExtensionContext,
   command: string
 ): Promise<AllowAlwaysRule | undefined> {
@@ -70,7 +67,7 @@ async function chooseOneWildcardRule(
 }
 
 /**
- * Multi-command wildcard path (one LLM call for N patterns, one editor).
+ * Multi-command wildcard path.
  */
 async function chooseWildcardListRules(
   ctx: ExtensionContext,
@@ -89,7 +86,7 @@ async function chooseWildcardListRules(
     const edited = await ctx.ui.editor(WILDCARD_LIST_EDITOR_TITLE, initial);
     if (edited === undefined) {return undefined;}
 
-    const validation = validateWildcardSuggestions(edited, commands);
+    const validation = validateWildcardSuggestionList(edited, commands);
     if (!validation.valid) {
       ctx.ui.notify(`${INVALID_WILDCARD_PREFIX}${validation.reason}`, "warning");
       initial = edited.trim() || commands.join("; ");
@@ -123,13 +120,15 @@ export async function chooseAlwaysRules(
   request: PermissionRequest,
   policy: PolicyResolution
 ): Promise<AllowAlwaysRule[] | undefined> {
-  if (willGenerateBashWildcard(request, policy)) {
-    const rule = await chooseOneWildcardRule(ctx, request.body);
+  const mode = resolveAllowAlwaysMode(request, policy);
+
+  if (mode === "wildcard") {
+    const rule = await chooseSingleWildcard(ctx, request.body);
     return rule ? [rule] : undefined;
   }
 
-  if (willGenerateBashWildcardList(request, policy)) {
-    const analysis = analyzeShellCommand(request.body);
+  if (mode === "wildcard-list") {
+    const analysis = request.bashAnalysis ?? analyzeShellCommand(request.body);
     return chooseWildcardListRules(ctx, analysis.segments);
   }
 

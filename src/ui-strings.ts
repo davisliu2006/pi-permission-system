@@ -2,7 +2,7 @@ import {
   ALLOW_ALWAYS_EXACT,
   ALLOW_ALWAYS_WILDCARD,
 } from "./constants.ts";
-import { usesBashWildcardAllowAlways } from "./policy-bash.ts";
+import { resolveAllowAlwaysMode } from "./policy-bash.ts";
 import type { PermissionRequest, PolicyResolution } from "./types.ts";
 
 export const STATUS_SUMMARIZING_REQUEST = "Summarizing permission request...";
@@ -35,7 +35,7 @@ export function buildSelectorSummary(request: PermissionRequest): string {
 
   if (request.bodyKind === "command") {
     lines.push(`Command: \`${preview(request.body, 600)}\``);
-    if (request.isChainedBash) {
+    if (request.bashAnalysis?.isComplex) {
       lines.push(CHAINED_BASH_NOTE);
     }
   } else if (request.bodyKind === "path") {
@@ -51,15 +51,15 @@ export function buildSelectorSummary(request: PermissionRequest): string {
 }
 
 /**
- * Label for the "Allow Always" select option.
+ * Label for the "allow always" select option.
  */
 export function formatAllowAlwaysOption(
   request: PermissionRequest,
   policy: PolicyResolution
 ): string {
-  return usesBashWildcardAllowAlways(request, policy)
-    ? ALLOW_ALWAYS_WILDCARD
-    : ALLOW_ALWAYS_EXACT;
+  return resolveAllowAlwaysMode(request, policy) === "exact"
+    ? ALLOW_ALWAYS_EXACT
+    : ALLOW_ALWAYS_WILDCARD;
 }
 
 export function formatBroadWildcardConfirm(pattern: string): string {

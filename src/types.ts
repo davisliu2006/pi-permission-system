@@ -1,4 +1,5 @@
 import { ASK, PERMISSION_STATES } from "./constants.ts";
+import type { ShellCommandAnalysis } from "./shell.ts";
 import type { PiToolInput } from "./types-pi.ts";
 
 // utility functions
@@ -31,8 +32,6 @@ export function createDefaultPermissionConfig(): PermissionConfig {
   return { default: ASK, tools: {}, bash: {}, external_directory: {} };
 }
 
-export const DEFAULT_PERMISSION_CONFIG = createDefaultPermissionConfig();
-
 // permission request
 
 export type RequestBodyKind = "command" | "path" | "generic";
@@ -44,6 +43,7 @@ export type RequestBodyKind = "command" | "path" | "generic";
  * @property body - The body for the permission request.
  * @property bodyKind - The meaning of the body.
  * @property cwd - The current working directory.
+ * @property bashAnalysis - Shell scan for bash requests (set once in buildRequest).
  */
 export interface PermissionRequest {
   toolName: string;
@@ -52,7 +52,7 @@ export interface PermissionRequest {
   bodyKind: RequestBodyKind;
   cwd: string;
   isExternalDirectory?: boolean;
-  isChainedBash?: boolean;
+  bashAnalysis?: ShellCommandAnalysis;
 }
 
 // resolved policy
@@ -66,8 +66,9 @@ export interface PolicyResolution {
   state: PermissionState;
   source: PolicySource;
   matchedPattern?: string;
-  isChainedBash: boolean;
 }
+
+export type AllowAlwaysMode = "wildcard" | "wildcard-list" | "exact";
 
 // other types
 

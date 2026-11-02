@@ -33,7 +33,7 @@ export function splitWildcardList(value: string): string[] {
 /**
  * Validates semicolon-separated patterns against a list of commands.
  */
-export function validateWildcardSuggestions(
+export function validateWildcardSuggestionList(
   patternsText: string,
   commands: readonly string[]
 ): { valid: true; patterns: string[]; broadPatterns: string[] } | { valid: false; reason: string } {

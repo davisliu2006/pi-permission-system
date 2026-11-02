@@ -41,7 +41,7 @@ export function buildPurposePromptContext(
 
   if (request.bodyKind === "command") {
     lines.push(`Command:\n${preview(request.body, 600)}`);
-    if (policy.isChainedBash) {
+    if (request.bashAnalysis?.isComplex) {
       lines.push(CHAINED_BASH_NOTE);
     }
   } else if (request.bodyKind === "path") {
@@ -122,7 +122,7 @@ export function buildWildcardListInstructions(commands: readonly string[]): stri
  */
 export function formatDenyReason(request: PermissionRequest, policy: PolicyResolution): string {
   const subject = describeBlockedSubject(request, true);
-  const chainedNote = policy.isChainedBash ? ` ${CHAINED_BASH_NOTE}` : "";
+  const chainedNote = request.bashAnalysis?.isComplex ? ` ${CHAINED_BASH_NOTE}` : "";
 
   return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}.${chainedNote} Hard stop: do not retry or investigate a bypass; report the denial to the user.`;
 }

@@ -119,11 +119,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     }
 
     // check session approval
-    const approval = findSessionApproval(
-      state.approvals.getRules(),
-      request,
-      policy.isChainedBash
-    );
+    const approval = findSessionApproval(state.approvals.getRules(), request);
     if (approval) {return undefined;} // approved, proceed
 
     const summary = buildSelectorSummary(request);
