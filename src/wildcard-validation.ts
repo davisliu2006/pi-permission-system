@@ -3,6 +3,29 @@ import {
   isValidWildcardPattern,
   matchesWildcard,
 } from "./matcher.ts";
+import {
+  formatWildcardListCountReason,
+  formatWildcardListItemReason,
+  WILDCARD_LENGTH_REASON,
+  WILDCARD_NO_MATCH_REASON,
+} from "./warning-strings.ts";
+
+export type WildcardValidationResult = {
+  valid: true;
+  broad: boolean;
+} | {
+  valid: false;
+  reason: string;
+};
+
+export type WildcardListValidationResult = {
+  valid: true;
+  patterns: string[];
+  broadPatterns: string[];
+} | {
+  valid: false;
+  reason: string;
+};
 
 /**
  * Validates a wildcard pattern against a command.
@@ -10,12 +33,12 @@ import {
 export function validateWildcardSuggestion(
   pattern: string,
   command: string
-): { valid: true; broad: boolean } | { valid: false; reason: string } {
+): WildcardValidationResult {
   if (!isValidWildcardPattern(pattern)) {
-    return { valid: false, reason: "Pattern must be between 1 and 500 characters." };
+    return { valid: false, reason: WILDCARD_LENGTH_REASON };
   }
   if (!matchesWildcard(pattern, command)) {
-    return { valid: false, reason: "Pattern does not match the current command." };
+    return { valid: false, reason: WILDCARD_NO_MATCH_REASON };
   }
   return { valid: true, broad: isMatchEverythingPattern(pattern) };
 }
@@ -36,12 +59,12 @@ export function splitWildcardList(value: string): string[] {
 export function validateWildcardSuggestionList(
   patternsText: string,
   commands: readonly string[]
-): { valid: true; patterns: string[]; broadPatterns: string[] } | { valid: false; reason: string } {
+): WildcardListValidationResult {
   const patterns = splitWildcardList(patternsText);
   if (patterns.length !== commands.length) {
     return {
       valid: false,
-      reason: `Expected ${commands.length} semicolon-separated pattern(s), got ${patterns.length}.`,
+      reason: formatWildcardListCountReason(commands.length, patterns.length),
     };
   }
 
@@ -53,7 +76,7 @@ export function validateWildcardSuggestionList(
     if (!result.valid) {
       return {
         valid: false,
-        reason: `Pattern ${index + 1} (${JSON.stringify(pattern)}): ${result.reason}`,
+        reason: formatWildcardListItemReason(index + 1, pattern, result.reason),
       };
     }
     if (result.broad) {broadPatterns.push(pattern);}

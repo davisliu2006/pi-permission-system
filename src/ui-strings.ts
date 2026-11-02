@@ -15,7 +15,6 @@ export const PURPOSE_PREFIX = "Purpose: ";
 export const WILDCARD_EDITOR_TITLE = "Review bash wildcard";
 export const WILDCARD_LIST_EDITOR_TITLE = "Review bash wildcards (semicolon-separated)";
 export const BROAD_WILDCARD_TITLE = "Very broad wildcard";
-export const INVALID_WILDCARD_PREFIX = "Invalid wildcard: ";
 
 const CHAINED_BASH_NOTE = "Shell chaining detected.";
 const EXTERNAL_DIRECTORY_NOTE = "Outside the current working directory.";

@@ -34,7 +34,7 @@ export function createDefaultPermissionConfig(): PermissionConfig {
 
 // permission request
 
-export type RequestBodyKind = "command" | "path" | "generic";
+export type RequestBodyKind = "path" | "command" | "generic";
 
 /**
  * Request for a tool.
@@ -43,7 +43,8 @@ export type RequestBodyKind = "command" | "path" | "generic";
  * @property body - The body for the permission request.
  * @property bodyKind - The meaning of the body.
  * @property cwd - The current working directory.
- * @property bashAnalysis - Shell scan for bash requests (set once in buildRequest).
+ * @property isExternalDirectory - Whether the request uses path to an external directory.
+ * @property bashAnalysis - Shell scan for bash requests.
  */
 export interface PermissionRequest {
   toolName: string;
@@ -57,7 +58,7 @@ export interface PermissionRequest {
 
 // resolved policy
 
-export type PolicySource = "bash" | "tool" | "default" | "external";
+export type PolicySource = "default" | "tool" | "bash" | "external";
 
 /**
  * A resolved policy.

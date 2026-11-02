@@ -6,7 +6,6 @@ import { clearWildcardCache } from "./matcher.ts";
 import {
   ALLOW,
   CONFIG_FILENAME,
-  CONFIG_WARNING_PREFIX,
   DENY,
   MAX_CONFIG_WARNINGS,
   STATUS_KEY,
@@ -26,6 +25,10 @@ import {
   buildSelectorSummary,
   STATUS_SUMMARIZING_REQUEST,
 } from "./ui-strings.ts";
+import {
+  CONFIG_WARNING_PREFIX,
+  formatSuppressedConfigWarnings,
+} from "./warning-strings.ts";
 import { chooseAlwaysRules } from "./wildcard-editor.ts";
 import type { PermissionConfig } from "./types.ts";
 
@@ -59,7 +62,7 @@ async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
     if (warnings.length > MAX_CONFIG_WARNINGS) {
       const suppressed = warnings.length - MAX_CONFIG_WARNINGS;
       ctx.ui.notify(
-        `${CONFIG_WARNING_PREFIX}${suppressed} additional config warning(s) suppressed.`,
+        `${CONFIG_WARNING_PREFIX}${formatSuppressedConfigWarnings(suppressed)}`,
         "warning"
       );
     }

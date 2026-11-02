@@ -8,11 +8,11 @@ import {
   BROAD_WILDCARD_TITLE,
   formatBroadWildcardConfirm,
   formatBroadWildcardListConfirm,
-  INVALID_WILDCARD_PREFIX,
   STATUS_GENERATING_WILDCARD,
   WILDCARD_EDITOR_TITLE,
   WILDCARD_LIST_EDITOR_TITLE,
 } from "./ui-strings.ts";
+import { INVALID_WILDCARD_PREFIX } from "./warning-strings.ts";
 import {
   validateWildcardSuggestion,
   validateWildcardSuggestionList,
@@ -38,16 +38,16 @@ async function chooseSingleWildcard(
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
 
-  let initial = suggestion ?? command;
+  let current = suggestion ?? command;
   while (true) {
-    const edited = await ctx.ui.editor(WILDCARD_EDITOR_TITLE, initial);
+    const edited = await ctx.ui.editor(WILDCARD_EDITOR_TITLE, current);
     if (edited === undefined) {return undefined;}
 
     const pattern = edited.trim();
     const validation = validateWildcardSuggestion(pattern, command);
     if (!validation.valid) {
       ctx.ui.notify(`${INVALID_WILDCARD_PREFIX}${validation.reason}`, "warning");
-      initial = pattern || command;
+      current = pattern || command;
       continue;
     }
 
@@ -57,7 +57,7 @@ async function chooseSingleWildcard(
         formatBroadWildcardConfirm(pattern)
       );
       if (!confirmed) {
-        initial = pattern;
+        current = pattern;
         continue;
       }
     }
@@ -81,15 +81,15 @@ async function chooseWildcardListRules(
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
 
-  let initial = (suggestion ?? commands).join("; ");
+  let current = (suggestion ?? commands).join("; ");
   while (true) {
-    const edited = await ctx.ui.editor(WILDCARD_LIST_EDITOR_TITLE, initial);
+    const edited = await ctx.ui.editor(WILDCARD_LIST_EDITOR_TITLE, current);
     if (edited === undefined) {return undefined;}
 
     const validation = validateWildcardSuggestionList(edited, commands);
     if (!validation.valid) {
       ctx.ui.notify(`${INVALID_WILDCARD_PREFIX}${validation.reason}`, "warning");
-      initial = edited.trim() || commands.join("; ");
+      current = edited.trim() || commands.join("; ");
       continue;
     }
 
@@ -99,7 +99,7 @@ async function chooseWildcardListRules(
         formatBroadWildcardListConfirm(validation.broadPatterns)
       );
       if (!confirmed) {
-        initial = validation.patterns.join("; ");
+        current = validation.patterns.join("; ");
         continue;
       }
     }
