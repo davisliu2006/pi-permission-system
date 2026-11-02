@@ -2,7 +2,6 @@ import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil
 import { join } from "node:path";
 
 import { clearPurposeCache, generateRequestPurpose } from "./ai-purpose.ts";
-import { generateBashWildcard } from "./ai-wildcard.ts";
 import { clearWildcardCache } from "./matcher.ts";
 import {
   ALLOW,
@@ -14,7 +13,7 @@ import {
 } from "./constants.ts";
 import { loadMergedConfig } from "./config.ts";
 import { promptForPermission } from "./permission-dialog.ts";
-import { findSessionApproval, resolvePolicy, willGenerateBashWildcard } from "./policy.ts";
+import { findSessionApproval, resolvePolicy } from "./policy.ts";
 import {
   buildPurposePromptContext,
   formatDenyReason,
@@ -24,21 +23,11 @@ import {
 import { buildRequest } from "./request-builder.ts";
 import { SessionApprovalStore } from "./session-approvals.ts";
 import {
-  BROAD_WILDCARD_TITLE,
   buildSelectorSummary,
-  formatBroadWildcardConfirm,
-  INVALID_WILDCARD_PREFIX,
-  STATUS_GENERATING_WILDCARD,
   STATUS_SUMMARIZING_REQUEST,
-  WILDCARD_EDITOR_TITLE,
 } from "./ui-strings.ts";
-import { validateWildcardSuggestion } from "./wildcard-validation.ts";
-import {
-  type PermissionConfig,
-  type PermissionRequest,
-  type PolicyResolution,
-  type AllowAlwaysRule,
-} from "./types.ts";
+import { chooseAlwaysRules } from "./wildcard-editor.ts";
+import type { PermissionConfig } from "./types.ts";
 
 interface ExtensionState {
   config?: PermissionConfig;
@@ -77,61 +66,6 @@ async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
   }
 
   return config;
-}
-
-/**
- * Selects the "allow always" matching rule for the request.
- */
-async function chooseAlwaysRule(
-  ctx: ExtensionContext,
-  request: PermissionRequest,
-  policy: PolicyResolution
-): Promise<AllowAlwaysRule | undefined> {
-  // no wildcard
-  if (!willGenerateBashWildcard(request, policy)) {
-    return { kind: "exact", tool: request.toolName, body: request.body };
-  }
-
-  // generate wildcard
-  ctx.ui.setStatus(STATUS_KEY, STATUS_GENERATING_WILDCARD);
-  let suggestion: string | undefined;
-  try {
-    suggestion = await generateBashWildcard(ctx, request.body);
-  } finally {
-    ctx.ui.setStatus(STATUS_KEY, undefined);
-  }
-
-  // show wildcard editor
-  let initial = suggestion ?? request.body;
-  while (true) {
-    const edited = await ctx.ui.editor(WILDCARD_EDITOR_TITLE, initial);
-    if (edited === undefined) {return undefined;}
-
-    const pattern = edited.trim();
-    const validation = validateWildcardSuggestion(pattern, request.body);
-    if (!validation.valid) {
-      ctx.ui.notify(`${INVALID_WILDCARD_PREFIX}${validation.reason}`, "warning");
-      initial = pattern || request.body;
-      continue;
-    }
-
-    if (validation.broad) {
-      const confirmed = await ctx.ui.confirm(
-        BROAD_WILDCARD_TITLE,
-        formatBroadWildcardConfirm(pattern)
-      );
-      if (!confirmed) {
-        initial = pattern;
-        continue;
-      }
-    }
-
-    return {
-      kind: "wildcard",
-      tool: "bash",
-      body: pattern,
-    };
-  }
 }
 
 /**
@@ -215,12 +149,14 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
       }
 
       // "allow always"
-      const rule = await chooseAlwaysRule(ctx, request, policy);
-      if (!rule) {
+      const rules = await chooseAlwaysRules(ctx, request, policy);
+      if (!rules) {
         // the user cancelled the wildcard editor, return to the permission dialog
         continue;
       }
-      state.approvals.add(rule);
+      for (const rule of rules) {
+        state.approvals.add(rule);
+      }
       return undefined;
     }
   });

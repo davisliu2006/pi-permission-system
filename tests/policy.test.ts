@@ -4,10 +4,13 @@ import test from "node:test";
 import {
   findSessionApproval,
   resolvePolicy,
+  willGenerateBashWildcard,
+  willGenerateBashWildcardList,
 } from "../src/policy.ts";
 import type {
   PermissionConfig,
   PermissionRequest,
+  PolicyResolution,
   AllowAlwaysRule,
 } from "../src/types.ts";
 
@@ -198,6 +201,20 @@ test("session exact full-command approvals still cover list sequences", () => {
   ];
 
   assert.equal(findSessionApproval(rules, bashRequest(command), false)?.kind, "exact");
+});
+
+test("wildcard allow-always paths distinguish one vs many segments", () => {
+  const ask: PolicyResolution = { state: "ask", source: "tool", isChainedBash: false };
+  const complex: PolicyResolution = { state: "ask", source: "tool", isChainedBash: true };
+
+  assert.equal(willGenerateBashWildcard(bashRequest("git status"), ask), true);
+  assert.equal(willGenerateBashWildcardList(bashRequest("git status"), ask), false);
+
+  assert.equal(willGenerateBashWildcard(bashRequest("git status && git log"), ask), false);
+  assert.equal(willGenerateBashWildcardList(bashRequest("git status && git log"), ask), true);
+
+  assert.equal(willGenerateBashWildcard(bashRequest("git status | sh"), complex), false);
+  assert.equal(willGenerateBashWildcardList(bashRequest("git status | sh"), complex), false);
 });
 
 test("session exact path approvals match by tool and body only", () => {

@@ -2,7 +2,7 @@ import {
   ALLOW_ALWAYS_EXACT,
   ALLOW_ALWAYS_WILDCARD,
 } from "./constants.ts";
-import { willGenerateBashWildcard } from "./policy.ts";
+import { usesBashWildcardAllowAlways } from "./policy-bash.ts";
 import type { PermissionRequest, PolicyResolution } from "./types.ts";
 
 export const STATUS_SUMMARIZING_REQUEST = "Summarizing permission request...";
@@ -13,6 +13,7 @@ export const PERMISSION_DIALOG_QUESTION = "What should the agent be allowed to d
 export const PURPOSE_PREFIX = "Purpose: ";
 
 export const WILDCARD_EDITOR_TITLE = "Review bash wildcard";
+export const WILDCARD_LIST_EDITOR_TITLE = "Review bash wildcards (semicolon-separated)";
 export const BROAD_WILDCARD_TITLE = "Very broad wildcard";
 export const INVALID_WILDCARD_PREFIX = "Invalid wildcard: ";
 
@@ -56,11 +57,15 @@ export function formatAllowAlwaysOption(
   request: PermissionRequest,
   policy: PolicyResolution
 ): string {
-  return willGenerateBashWildcard(request, policy)
+  return usesBashWildcardAllowAlways(request, policy)
     ? ALLOW_ALWAYS_WILDCARD
     : ALLOW_ALWAYS_EXACT;
 }
 
 export function formatBroadWildcardConfirm(pattern: string): string {
   return `This pattern can match many commands:\n\n${pattern}\n\nSave it for this session?`;
+}
+
+export function formatBroadWildcardListConfirm(patterns: readonly string[]): string {
+  return `These patterns can match many commands:\n\n${patterns.join("\n")}\n\nSave them for this session?`;
 }

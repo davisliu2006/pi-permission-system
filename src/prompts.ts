@@ -75,20 +75,45 @@ export const WILDCARD_SYSTEM_PROMPT = [
   "Return only the pattern itself with no explanation or markdown.",
 ].join(" ");
 
+export const WILDCARD_LIST_SYSTEM_PROMPT = [
+  "You generate shell command permission patterns for the user to approve.",
+  "Return only semicolon-separated patterns with no explanation or markdown.",
+].join(" ");
+
+const WILDCARD_RULES = [
+  "Rules for each pattern:",
+  "- Use wildcard syntax, not regular expressions.",
+  "- * matches any sequence of characters.",
+  "- ? matches exactly one character.",
+  "- \\* and \\? match literal characters.",
+  "- All other characters are literal.",
+];
+
 export function buildWildcardInstructions(command: string): string {
   return [
     "Create a permission wildcard for this command.",
     "Select one that is general enough to be useful but narrow enough to not pose security risks.",
     "",
-    "Rules for the pattern:",
-    "- Use wildcard syntax, not regular expressions.",
-    "- * matches any sequence of characters.",
-    "- ? matches exactly one character.",
-    "- \\* and \\? match literal characters.",
-    "- All other characters are literal.",
+    ...WILDCARD_RULES,
     "The pattern must match the given command.",
     "",
     `Command: ${JSON.stringify(command)}`,
+  ].join("\n");
+}
+
+/**
+ * Builds instructions for generating one wildcard per command in a simple list.
+ */
+export function buildWildcardListInstructions(commands: readonly string[]): string {
+  return [
+    "Create a permission wildcard for each command below.",
+    "Select patterns that are general enough to be useful but narrow enough to not pose security risks.",
+    "Return exactly one pattern per command, separated by semicolons, in the same order.",
+    "",
+    ...WILDCARD_RULES,
+    "Each pattern must match its corresponding command.",
+    "",
+    `Commands: ${commands.join("; ")}`,
   ].join("\n");
 }
 
