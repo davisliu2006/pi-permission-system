@@ -27,9 +27,6 @@ export async function promptForPermission(
   summary: string,
   purpose?: string
 ): Promise<PermissionDialogSelection> {
-  // if there's no ui, just reject
-  if (!ctx.hasUI) {return { kind: "reject" };}
-
   const purposeLine = purpose ? `\n${PURPOSE_PREFIX}${purpose}` : "";
   const title = `${PERMISSION_DIALOG_TITLE}\n${summary}${purposeLine}\n${PERMISSION_DIALOG_QUESTION}`;
   const options = [ALLOW_ONCE, formatAllowAlwaysOption(request, policy), REJECT];

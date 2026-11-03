@@ -7,6 +7,7 @@ import {
   ALLOW,
   CONFIG_FILENAME,
   DENY,
+  LOCAL_CONFIG_DIR_SEGMENTS,
   MAX_CONFIG_WARNINGS,
   STATUS_KEY,
 } from "./constants.ts";
@@ -52,7 +53,7 @@ function createNewState(): ExtensionState {
 async function loadConfig(ctx: ExtensionContext): Promise<PermissionConfig> {
   const { config, warnings } = await loadMergedConfig(
     join(getAgentDir(), CONFIG_FILENAME),
-    join(ctx.cwd, CONFIG_FILENAME)
+    join(ctx.cwd, ...LOCAL_CONFIG_DIR_SEGMENTS, CONFIG_FILENAME)
   );
 
   if (ctx.hasUI) {
@@ -132,7 +133,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
       purpose = await generateRequestPurpose(
         ctx,
         request,
-        buildPurposePromptContext(request, policy)
+        buildPurposePromptContext(request)
       );
     } finally {
       ctx.ui.setStatus(STATUS_KEY, undefined);

@@ -20,7 +20,7 @@ export function describeBlockedSubject(
     return `bash command ${JSON.stringify(request.body)}`;
   }
   if (request.bodyKind === "path") {
-    return `access to ${JSON.stringify(request.body)}`;
+    return `${request.toolName} access to ${JSON.stringify(request.body)}`;
   }
   return includeGenericSubject
     ? `tool ${JSON.stringify(request.toolName)} with input ${request.body}`
@@ -30,20 +30,13 @@ export function describeBlockedSubject(
 /**
  * Builds context for the ai-generated purpose.
  */
-export function buildPurposePromptContext(
-  request: PermissionRequest,
-  policy: PolicyResolution
-): string {
+export function buildPurposePromptContext(request: PermissionRequest): string {
   const lines = [
     `Tool: ${request.toolName}`,
-    `Policy: ${describePolicy(policy)}`,
   ];
 
   if (request.bodyKind === "command") {
     lines.push(`Command:\n${preview(request.body, 600)}`);
-    if (request.bashAnalysis?.isComplex) {
-      lines.push(CHAINED_BASH_NOTE);
-    }
   } else if (request.bodyKind === "path") {
     lines.push(`Path: ${preview(request.body, 400)}`);
     if (request.isExternalDirectory) {
@@ -63,6 +56,14 @@ export const PURPOSE_SYSTEM_PROMPT = [
 
 export function buildPurposeInstructions(context: string): string {
   return [
+    "Examples:",
+    "Tool: bash",
+    `Command: git commit -m "Add feature" && git log`,
+    "Commits the changes to the repository and lists the commit history.",
+    "Tool: bash",
+    `Command: grep -rnEI --color=never --exclude-dir={node_modules} --include=\\*.py -B 2 -A 3 "^[[:space:]]*[^/]*\\b(func_1|func_2)\\s*(" .`,
+    "Searches the project for instances of func_1 or func_2.",
+    "",
     "Explain why the following request is being made in a single sentence.",
     "Do not use markdown or quotes.",
     "",
@@ -124,7 +125,7 @@ export function formatDenyReason(request: PermissionRequest, policy: PolicyResol
   const subject = describeBlockedSubject(request, true);
   const chainedNote = request.bashAnalysis?.isComplex ? ` ${CHAINED_BASH_NOTE}` : "";
 
-  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}.${chainedNote} Hard stop: do not retry or investigate a bypass; report the denial to the user.`;
+  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}.${chainedNote} Hard stop: do not retry or investigate a bypass. Report the denial to the user.`;
 }
 
 /**
@@ -139,5 +140,5 @@ export function formatNoUiReason(request: PermissionRequest, policy: PolicyResol
  */
 export function formatRejectReason(request: PermissionRequest): string {
   const subject = describeBlockedSubject(request, false);
-  return `User rejected ${subject}. Do not retry the rejected request. Ask the user what to do next.`;
+  return `User rejected ${subject}. Pause the task immediately (do not do further analysis or run more tool requests) and concisely ask the user what to do next.`;
 }

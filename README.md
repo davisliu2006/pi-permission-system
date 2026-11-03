@@ -49,7 +49,7 @@ More specific rules override less specific rules:
 
 ### Global Configuration
 
-Located in `.pi/agent/pi-permissions.jsonc`.
+Located in `~/.pi/agent/pi-permissions.jsonc`.
 
 Example:
 
@@ -97,9 +97,9 @@ Example:
 
 ### Local Configuration
 
-Located in a file in the local project directory root:
+Located in the local Pi config folder:
 
-`pi-permissions.jsonc`
+`<project-root>/.pi/pi-permissions.jsonc`
 
 Local configuration overrides global configuration, including `deny` rules.
 

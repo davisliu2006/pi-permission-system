@@ -3,6 +3,8 @@ export const STATUS_KEY = EXTENSION_NAME;
 export const MAX_CONFIG_WARNINGS = 5;
 
 export const CONFIG_FILENAME = "pi-permissions.jsonc";
+/** Local config directory under the cwd. */
+export const LOCAL_CONFIG_DIR_SEGMENTS = [".pi"] as const;
 
 export const ALLOW = "allow";
 export const ASK = "ask";
