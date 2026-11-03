@@ -1,10 +1,19 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { completeText } from "./ai-gen.ts";
-import { buildWildcardInstructions, WILDCARD_SYSTEM_PROMPT } from "./prompts.ts";
-import { validateWildcardSuggestion } from "./wildcard-validation.ts";
+import {
+  buildWildcardInstructions,
+  buildWildcardListInstructions,
+  WILDCARD_LIST_SYSTEM_PROMPT,
+  WILDCARD_SYSTEM_PROMPT,
+} from "./prompts.ts";
+import {
+  validateWildcardSuggestion,
+  validateWildcardSuggestionList,
+} from "./wildcard-validation.ts";
 
 const WILDCARD_TIMEOUT_MS = 8000;
 const MAX_WILDCARD_TOKENS = 120;
+const MAX_WILDCARD_LIST_TOKENS = 240;
 
 /**
  * Sanitizes against:
@@ -26,7 +35,7 @@ function sanitizeWildcard(value: string): string | undefined {
 }
 
 /**
- * Generates the bash wildcard recommendation.
+ * Generates one bash wildcard recommendation.
  */
 export async function generateBashWildcard(
   ctx: ExtensionContext,
@@ -48,4 +57,32 @@ export async function generateBashWildcard(
   if (!validation.valid) {return undefined;}
 
   return pattern;
+}
+
+/**
+ * Generates a list of bash wildcards.
+ * Expects semicolon-separated patterns back.
+ */
+export async function generateBashWildcards(
+  ctx: ExtensionContext,
+  commands: readonly string[]
+): Promise<string[] | undefined> {
+  if (commands.length === 0) {return undefined;}
+
+  const text = await completeText(ctx, {
+    systemPrompt: WILDCARD_LIST_SYSTEM_PROMPT,
+    userText: buildWildcardListInstructions(commands),
+    maxTokens: MAX_WILDCARD_LIST_TOKENS,
+    timeoutMs: WILDCARD_TIMEOUT_MS,
+    joinWith: "\n",
+  });
+  if (!text) {return undefined;}
+
+  const sanitized = sanitizeWildcard(text);
+  if (!sanitized) {return undefined;}
+
+  const validation = validateWildcardSuggestionList(sanitized, commands);
+  if (!validation.valid) {return undefined;}
+
+  return validation.patterns;
 }

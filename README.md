@@ -120,8 +120,10 @@ Body matching rules:
 
 ## Bash Matching Safeguards
 
-Bash matching safeguards against chaining.
+Bash matching safeguards against unsafe shell syntax.
 
-If a bash command contains shell chaining or control syntax (`;`, `&&`, `||`, `|`, `&`, newlines, command substitution, or process substitution), `bash` pattern rules are skipped and the `tools.bash` policy is used instead, falling back to `default`.
+Simple sequences separated only by `;`, `&&`, `||`, or newlines are split and each segment is matched against `bash` rules. The strictest result wins (`deny` > `ask` > `allow`).
 
-"Allow always" for a chained command saves the exact command, not a wildcard.
+If a command contains other chaining or control syntax (`|`, `&`, command substitution, process substitution, or parentheses), `bash` pattern rules are skipped and the `tools.bash` policy is used instead, falling back to `default`.
+
+"Allow always" for complex or multi-command sequences saves the exact command, not a wildcard.

@@ -49,3 +49,16 @@ test("generic tools use stable full-input JSON as the body", async () => {
   assert.equal(request.bodyKind, "generic");
   assert.equal(request.body, JSON.stringify({ a: "two", name: "search", z: 1 }));
 });
+
+test("bash requests carry a single shell analysis", async () => {
+  const simple = await buildRequest("bash", { command: "git status" }, process.cwd());
+  assert.equal(simple.bodyKind, "command");
+  assert.deepEqual(simple.bashAnalysis, {
+    isComplex: false,
+    segments: ["git status"],
+  });
+
+  const complex = await buildRequest("bash", { command: "git status | sh" }, process.cwd());
+  assert.equal(complex.bashAnalysis?.isComplex, true);
+  assert.deepEqual(complex.bashAnalysis?.segments, []);
+});

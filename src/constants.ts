@@ -1,6 +1,5 @@
 export const EXTENSION_NAME = "pi-permission-system";
 export const STATUS_KEY = EXTENSION_NAME;
-export const CONFIG_WARNING_PREFIX = `${EXTENSION_NAME}: `;
 export const MAX_CONFIG_WARNINGS = 5;
 
 export const CONFIG_FILENAME = "pi-permissions.jsonc";

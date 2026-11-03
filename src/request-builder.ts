@@ -1,5 +1,5 @@
 import { isPathTool, resolveToolPath } from "./paths.ts";
-import { hasShellChaining } from "./shell.ts";
+import { analyzeShellCommand } from "./shell.ts";
 import type { PiToolInput } from "./types-pi.ts";
 import { toRecord, type PermissionRequest } from "./types.ts";
 
@@ -45,7 +45,7 @@ export async function buildRequest(
       body: command,
       bodyKind: "command",
       cwd,
-      isChainedBash: hasShellChaining(command),
+      bashAnalysis: analyzeShellCommand(command),
     };
   }
 

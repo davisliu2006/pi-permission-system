@@ -1,8 +1,7 @@
 import { readFile } from "node:fs/promises";
-import { ASK, PERMISSION_STATES_DESCRIPTION } from "./constants.ts";
+import { ASK } from "./constants.ts";
 import { parseJsonc } from "./jsonc.ts";
 import {
-  DEFAULT_PERMISSION_CONFIG,
   createDefaultPermissionConfig,
   toPermissionState,
   toRecord,
@@ -11,6 +10,14 @@ import {
   type PermissionSection,
   type PermissionState,
 } from "./types.ts";
+import {
+  CONFIG_MUST_BE_OBJECT,
+  formatConfigParseFailure,
+  formatConfigReadFailure,
+  formatIgnoredSectionEntryWarning,
+  formatIgnoredSectionWarning,
+  IGNORED_DEFAULT_WARNING,
+} from "./warning-strings.ts";
 
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
@@ -29,7 +36,7 @@ function normalizeSection(
   if (!record) {
     warnings.push({
       path: configPath,
-      message: `Ignoring "${sectionName}": expected an object mapping names to ${PERMISSION_STATES_DESCRIPTION}.`,
+      message: formatIgnoredSectionWarning(sectionName),
     });
     return {};
   }
@@ -43,7 +50,7 @@ function normalizeSection(
     } else {
       warnings.push({
         path: configPath,
-        message: `Ignoring "${sectionName}.${key}": expected ${PERMISSION_STATES_DESCRIPTION}.`,
+        message: formatIgnoredSectionEntryWarning(sectionName, key),
       });
     }
   }
@@ -63,7 +70,7 @@ function normalizeConfig(
   if (!config) {
     warnings.push({
       path: configPath,
-      message: "Permission config must be a JSON object; using defaults.",
+      message: CONFIG_MUST_BE_OBJECT,
     });
     return createDefaultPermissionConfig();
   }
@@ -72,7 +79,7 @@ function normalizeConfig(
   if (config.default !== undefined && parsedDefault === undefined) {
     warnings.push({
       path: configPath,
-      message: `Ignoring "default": expected ${PERMISSION_STATES_DESCRIPTION}.`,
+      message: IGNORED_DEFAULT_WARNING,
     });
   }
   const defaultState = parsedDefault ?? ASK;
@@ -105,7 +112,7 @@ async function loadConfigFile(
     if (code === "ENOENT") {return undefined;} // file does not exist
     warnings.push({
       path,
-      message: `Failed to read permission config: ${error instanceof Error ? error.message : String(error)}`,
+      message: formatConfigReadFailure(error),
     });
     return undefined;
   }
@@ -115,7 +122,7 @@ async function loadConfigFile(
   } catch (error) {
     warnings.push({
       path,
-      message: `Failed to parse permission config: ${error instanceof Error ? error.message : String(error)}`,
+      message: formatConfigParseFailure(error),
     });
     return undefined;
   }
@@ -150,7 +157,7 @@ export function mergeConfigs(
     return createDefaultPermissionConfig();
   }
 
-  globalConfig = globalConfig ?? DEFAULT_PERMISSION_CONFIG;
+  globalConfig = globalConfig ?? createDefaultPermissionConfig();
 
   return {
     default: localConfig?.default ?? globalConfig.default,
