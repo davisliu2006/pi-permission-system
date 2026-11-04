@@ -33,7 +33,7 @@ export function buildSelectorSummary(request: PermissionRequest): string {
   ];
 
   if (request.bodyKind === "command") {
-    lines.push(`Command: \`${preview(request.body, 600)}\``);
+    lines.push(`Command: ${preview(request.body, 600)}`);
     if (request.bashAnalysis?.isComplex) {
       lines.push(CHAINED_BASH_NOTE);
     }
