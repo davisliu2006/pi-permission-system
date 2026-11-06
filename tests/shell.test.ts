@@ -6,6 +6,7 @@ import { analyzeShellCommand } from "../src/shell.ts";
 test("detects complex shell syntax", () => {
   for (const command of [
     "git status | sh",
+    "git status |& sh",
     "git status &",
     "(git status)",
     "git status $(rm -rf /)",
@@ -14,6 +15,29 @@ test("detects complex shell syntax", () => {
   ]) {
     assert.equal(analyzeShellCommand(command).isComplex, true, command);
   }
+});
+
+test("pipes split into segments while staying complex", () => {
+  assert.deepEqual(analyzeShellCommand("git status | sh"), {
+    isComplex: true,
+    segments: ["git status", "sh"],
+  });
+  assert.deepEqual(analyzeShellCommand("git status |& sh"), {
+    isComplex: true,
+    segments: ["git status", "sh"],
+  });
+  assert.deepEqual(analyzeShellCommand("a | b | c"), {
+    isComplex: true,
+    segments: ["a", "b", "c"],
+  });
+  assert.deepEqual(analyzeShellCommand("git status && git log | sh"), {
+    isComplex: true,
+    segments: ["git status", "git log", "sh"],
+  });
+  assert.deepEqual(analyzeShellCommand("echo 'a | b' | cat"), {
+    isComplex: true,
+    segments: ["echo 'a | b'", "cat"],
+  });
 });
 
 test("simple commands and list sequences are not complex", () => {

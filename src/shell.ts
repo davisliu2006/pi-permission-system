@@ -2,7 +2,11 @@
  * Result of a conservative shell scan.
  *
  * When `isComplex` is false, `segments` are commands separated only by `;`,
- * `&&`, `||`, or newlines (or a single command). When true, `segments` is empty.
+ * `&&`, `||`, or newlines (or a single command).
+ *
+ * When `isComplex` is true because of `|` / `|&`, `segments` are still filled
+ * so deny rules can be checked per stage. Other complex syntax returns empty
+ * `segments`.
  */
 export type ShellCommandAnalysis = {
   isComplex: boolean;
@@ -17,6 +21,7 @@ const COMPLEX: ShellCommandAnalysis = { isComplex: true, segments: [] };
  *
  * Splits on:
  * - `;`, `&&`, `||`, and newlines outside quotes
+ * - '|' and '|&' outside quotes (also treated as complex)
  *
  * Treats as complex:
  * - Substitutions like `command` and $(command)
@@ -27,6 +32,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
   let quote: "'" | '"' | undefined;
   let index = 0;
   let current = "";
+  let isComplex = false;
   const segments: string[] = [];
 
   const pushCurrent = (): void => {
@@ -47,7 +53,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
     }
     if (quote === '"') {
       if (character === "\\") {
-        current += character + (command[index + 1] ?? "");
+        current += character + (command[index+1] ?? "");
         index += 2;
         continue;
       }
@@ -58,7 +64,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
         continue;
       }
       if (character === "`") {return COMPLEX;}
-      if (character === "$" && command[index + 1] === "(") {return COMPLEX;}
+      if (character === "$" && command[index+1] === "(") {return COMPLEX;}
       current += character;
       index++;
       continue;
@@ -66,7 +72,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
 
     // escape character
     if (character === "\\") {
-      current += character + (command[index + 1] ?? "");
+      current += character + (command[index+1] ?? "");
       index += 2;
       continue;
     }
@@ -86,7 +92,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
     }
 
     if (character === "`") {return COMPLEX;}
-    if (character === "$" && command[index + 1] === "(") {return COMPLEX;}
+    if (character === "$" && command[index+1] === "(") {return COMPLEX;}
     if (character === "(" || character === ")") {return COMPLEX;}
 
     // simple separators
@@ -102,14 +108,18 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
       continue;
     }
     if (character === "|") {
-      if (command[index+1] !== "|") {return COMPLEX;}
       pushCurrent();
-      index += 2;
+      if (command[index+1] === "|") {
+        index += 2;
+        continue;
+      }
+      isComplex = true;
+      index += command[index+1] === "&" ? 2 : 1;
       continue;
     }
     if (character === "\n" || character === "\r") {
       pushCurrent();
-      if (character === "\r" && command[index + 1] === "\n") {index += 2;}
+      if (character === "\r" && command[index+1] === "\n") {index += 2;}
       else {index++;}
       continue;
     }
@@ -123,7 +133,7 @@ export function analyzeShellCommand(command: string): ShellCommandAnalysis {
 
   pushCurrent();
   return {
-    isComplex: false,
+    isComplex,
     segments: segments.length > 0 ? segments : [""],
   };
 }

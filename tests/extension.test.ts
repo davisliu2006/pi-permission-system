@@ -60,5 +60,5 @@ test("bash requests carry a single shell analysis", async () => {
 
   const complex = await buildRequest("bash", { command: "git status | sh" }, process.cwd());
   assert.equal(complex.bashAnalysis?.isComplex, true);
-  assert.deepEqual(complex.bashAnalysis?.segments, []);
+  assert.deepEqual(complex.bashAnalysis?.segments, ["git status", "sh"]);
 });

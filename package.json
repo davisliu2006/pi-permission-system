@@ -21,7 +21,8 @@
     "pi-package",
     "pi",
     "pi-extension",
-    "permissions"
+    "permissions",
+    "pi-permissions"
   ],
   "author": "davisliu2006",
   "license": "MIT",

@@ -92,7 +92,7 @@ test("newline sequences are matched like other list sequences", () => {
   assert.equal(policy.matchedPattern, "git log*");
 });
 
-test("complex chained commands skip bash patterns and fall back to tools.bash", () => {
+test("complex chained commands skip allow/ask bash patterns and fall back to tools.bash", () => {
   const config: PermissionConfig = {
     ...baseConfig,
     tools: { ...baseConfig.tools, bash: "ask" },
@@ -107,6 +107,7 @@ test("complex chained commands skip bash patterns and fall back to tools.bash", 
   assert.equal(policy.state, "ask");
   assert.equal(policy.source, "tool");
   assert.equal(request.bashAnalysis?.isComplex, true);
+  assert.deepEqual(request.bashAnalysis?.segments, ["git status", "sh"]);
 });
 
 test("complex chained commands fall back to default when tools.bash is absent", () => {
@@ -122,6 +123,35 @@ test("complex chained commands fall back to default when tools.bash is absent", 
   assert.equal(policy.state, "deny");
   assert.equal(policy.source, "default");
   assert.equal(request.bashAnalysis?.isComplex, true);
+});
+
+test("complex pipelines still honor bash deny rules on stages", () => {
+  const config: PermissionConfig = {
+    ...baseConfig,
+    tools: { ...baseConfig.tools, bash: "allow" },
+    bash: {
+      "*": "allow",
+      "rm *": "deny",
+      "sh*": "deny",
+    },
+  };
+
+  const piped = resolvePolicy(config, bashRequest("git status | sh"));
+  assert.equal(piped.state, "deny");
+  assert.equal(piped.source, "bash");
+  assert.equal(piped.matchedPattern, "sh*");
+
+  const stderrPipe = resolvePolicy(config, bashRequest("git status |& sh -c rm"));
+  assert.equal(stderrPipe.state, "deny");
+  assert.equal(stderrPipe.source, "bash");
+
+  const deniedStage = resolvePolicy(
+    config,
+    bashRequest("echo hi | rm -rf /")
+  );
+  assert.equal(deniedStage.state, "deny");
+  assert.equal(deniedStage.source, "bash");
+  assert.equal(deniedStage.matchedPattern, "rm *");
 });
 
 test("external directory rules replace the normal tool policy", () => {

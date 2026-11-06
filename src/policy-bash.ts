@@ -76,6 +76,26 @@ function combineBashSegmentResolutions(
 }
 
 /**
+ * "Deny" rule can do raw wildcard matching on complex segments.
+ */
+function resolveComplexBashDeny(
+  config: PermissionConfig,
+  segments: readonly string[]
+): PolicyResolution | undefined {
+  let denied: PolicyResolution | undefined;
+  for (const segment of segments) {
+    const match = findLastWildcardMatch(config.bash, segment);
+    if (match?.state !== "deny") {continue;}
+    denied = {
+      state: "deny",
+      source: "bash",
+      matchedPattern: match.pattern,
+    };
+  }
+  return denied;
+}
+
+/**
  * Resolves bash policy, including simple list splitting.
  */
 export function resolveBashPolicy(
@@ -84,7 +104,10 @@ export function resolveBashPolicy(
 ): PolicyResolution {
   const analysis = bashAnalysisOf(request);
   if (analysis.isComplex) {
-    return bashFallbackResolution(config);
+    return (
+      resolveComplexBashDeny(config, analysis.segments) ??
+      bashFallbackResolution(config)
+    );
   }
   const resolutions = analysis.segments.map((segment) =>
     resolveBashSegment(config, segment)

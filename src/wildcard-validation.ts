@@ -76,7 +76,7 @@ export function validateWildcardSuggestionList(
     if (!result.valid) {
       return {
         valid: false,
-        reason: formatWildcardListItemReason(index + 1, pattern, result.reason),
+        reason: formatWildcardListItemReason(index+1, pattern, result.reason),
       };
     }
     if (result.broad) {broadPatterns.push(pattern);}
