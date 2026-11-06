@@ -22,10 +22,7 @@ import {
 } from "./prompts.ts";
 import { buildRequest } from "./request-builder.ts";
 import { SessionApprovalStore } from "./session-approvals.ts";
-import {
-  buildSelectorSummary,
-  STATUS_SUMMARIZING_REQUEST,
-} from "./ui-strings.ts";
+import { STATUS_SUMMARIZING_REQUEST } from "./ui-strings.ts";
 import {
   CONFIG_WARNING_PREFIX,
   formatSuppressedConfigWarnings,
@@ -126,7 +123,6 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     const approval = findSessionApproval(state.approvals.getRules(), request);
     if (approval) {return undefined;} // approved, proceed
 
-    const summary = buildSelectorSummary(request);
     ctx.ui.setStatus(STATUS_KEY, STATUS_SUMMARIZING_REQUEST);
     let purpose: string | undefined;
     try {
@@ -140,7 +136,7 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     }
 
     while (true) {
-      const choice = await promptForPermission(ctx, request, policy, summary, purpose);
+      const choice = await promptForPermission(ctx, request, policy, purpose);
       if (choice.kind === "once") { // approved, proceed
         return;
       }

@@ -1,3 +1,4 @@
+import type { Theme } from "@earendil-works/pi-coding-agent";
 import {
   ALLOW_ALWAYS_EXACT,
   ALLOW_ALWAYS_WILDCARD,
@@ -10,7 +11,6 @@ export const STATUS_GENERATING_WILDCARD = "Generating bash wildcard...";
 
 export const PERMISSION_DIALOG_TITLE = "Permission Required";
 export const PERMISSION_DIALOG_QUESTION = "What should the agent be allowed to do?";
-export const PURPOSE_PREFIX = "Purpose: ";
 
 export const WILDCARD_EDITOR_TITLE = "Review bash wildcard";
 export const WILDCARD_LIST_EDITOR_TITLE = "Review bash wildcards (semicolon-separated)";
@@ -19,34 +19,75 @@ export const BROAD_WILDCARD_TITLE = "Very broad wildcard";
 const CHAINED_BASH_NOTE = "Shell chaining detected.";
 const EXTERNAL_DIRECTORY_NOTE = "Outside the current working directory.";
 
+type SummaryLine = {
+  label?: string;
+  value: string;
+};
+
 function preview(value: string, limit: number): string {
   const normalized = value.replace(/\r\n/g, "\n");
   return normalized.length > limit ? `${normalized.slice(0, limit)}...` : normalized;
 }
 
-/**
- * Summary shown in the permission select dialog.
- */
-export function buildSelectorSummary(request: PermissionRequest): string {
-  const lines = [
-    `Tool: ${request.toolName}`,
+function buildSelectorSummaryLines(
+  request: PermissionRequest,
+  purpose?: string
+): SummaryLine[] {
+  const lines: SummaryLine[] = [
+    { label: "Tool", value: request.toolName },
   ];
-
   if (request.bodyKind === "command") {
-    lines.push(`Command: ${preview(request.body, 600)}`);
+    lines.push({ label: "Command", value: preview(request.body, 600) });
     if (request.bashAnalysis?.isComplex) {
-      lines.push(CHAINED_BASH_NOTE);
+      lines.push({ value: CHAINED_BASH_NOTE });
     }
   } else if (request.bodyKind === "path") {
-    lines.push(`Path: ${preview(request.body, 400)}`);
+    lines.push({ label: "Path", value: preview(request.body, 400) });
     if (request.isExternalDirectory) {
-      lines.push(EXTERNAL_DIRECTORY_NOTE);
+      lines.push({ value: EXTERNAL_DIRECTORY_NOTE });
     }
   } else {
-    lines.push(`Input: ${preview(request.body, 600)}`);
+    lines.push({ label: "Input", value: preview(request.body, 600) });
   }
+  if (purpose) {
+    lines.push({ label: "Purpose", value: purpose });
+  }
+  return lines;
+}
 
-  return lines.join("\n");
+/**
+ * Plain summary shown in the non-TUI permission dialog.
+ */
+export function buildPlainSelectorSummary(
+  request: PermissionRequest,
+  purpose?: string
+): string {
+  return buildSelectorSummaryLines(request, purpose)
+    .map((line) => (
+      line.label ? `${line.label}: ${line.value}` : line.value)
+    )
+    .join("\n");
+}
+
+/**
+ * Styled summary lines shown in the TUI permission dialog.
+ */
+export function buildStyledSelectorSummary(
+  theme: Theme,
+  request: PermissionRequest,
+  purpose?: string
+): string[] {
+  return buildSelectorSummaryLines(request, purpose).map((line) => {
+    if (!line.label) {
+      return theme.fg("muted", line.value);
+    }
+    if (line.label === "Purpose") {
+      return theme.fg("accent", theme.bold(`${line.label}:`))
+        + theme.fg("muted", ` ${line.value}`);
+    }
+    return theme.fg("accent", theme.bold(`${line.label}:`))
+      + theme.fg("text", ` ${line.value}`);
+  });
 }
 
 /**

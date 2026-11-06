@@ -1,4 +1,4 @@
-import type { ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ExtensionSelectorComponent } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 import {
@@ -13,10 +13,11 @@ import type {
   PolicyResolution,
 } from "./types.ts";
 import {
+  buildPlainSelectorSummary,
+  buildStyledSelectorSummary,
   formatAllowAlwaysOption,
   PERMISSION_DIALOG_QUESTION,
   PERMISSION_DIALOG_TITLE,
-  PURPOSE_PREFIX,
 } from "./ui-strings.ts";
 
 function mapChoice(choice: string | undefined | null): PermissionDialogSelection {
@@ -27,14 +28,6 @@ function mapChoice(choice: string | undefined | null): PermissionDialogSelection
   return { kind: "reject" };
 }
 
-/** Bold + color the `Label:` prefix; warning color for note lines. */
-function styleSummaryLine(theme: Theme, line: string): string {
-  const sep = line.indexOf(": ");
-  if (sep === -1) {return theme.fg("text", line);}
-  return theme.fg("accent", theme.bold(line.slice(0, sep + 1)))
-    + theme.fg("text", line.slice(sep + 1));
-}
-
 /**
  * Shows permission dialog and gets input.
  */
@@ -42,7 +35,6 @@ export async function promptForPermission(
   ctx: ExtensionContext,
   request: PermissionRequest,
   policy: PolicyResolution,
-  summary: string,
   purpose?: string
 ): Promise<PermissionDialogSelection> {
   const options = [ALLOW_ONCE, formatAllowAlwaysOption(request, policy), REJECT];
@@ -50,8 +42,8 @@ export async function promptForPermission(
   try {
     // non-tui mode fallback
     if (ctx.mode !== "tui") {
-      const purposeLine = purpose ? `\n${PURPOSE_PREFIX}${purpose}` : "";
-      const title = `${PERMISSION_DIALOG_TITLE}\n${summary}${purposeLine}\n${PERMISSION_DIALOG_QUESTION}`;
+      const summary = buildPlainSelectorSummary(request, purpose);
+      const title = `${PERMISSION_DIALOG_TITLE}\n${summary}\n${PERMISSION_DIALOG_QUESTION}`;
       return mapChoice(await ctx.ui.select(title, options));
     }
 
@@ -59,11 +51,8 @@ export async function promptForPermission(
     const choice = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
       const container = new Container();
       container.addChild(new Text(theme.fg("accent", theme.bold(PERMISSION_DIALOG_TITLE)), 1, 0));
-      for (const line of summary.split("\n")) {
-        container.addChild(new Text(styleSummaryLine(theme, line), 1, 0));
-      }
-      if (purpose) {
-        container.addChild(new Text(styleSummaryLine(theme, `${PURPOSE_PREFIX}${purpose}`), 1, 0));
+      for (const line of buildStyledSelectorSummary(theme, request, purpose)) {
+        container.addChild(new Text(line, 1, 0));
       }
 
       const selector = new ExtensionSelectorComponent(

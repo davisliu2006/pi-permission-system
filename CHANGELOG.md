@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `deny` rules can now check complex bash segments.
+
 ## [0.2.0] — 2026-11-03
 
 ### Added

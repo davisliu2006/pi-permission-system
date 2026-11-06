@@ -90,7 +90,8 @@ Example:
         "rg*": "allow"
     },
     "external_directory": {
-        "write": "ask"
+        "write": "ask",
+        "edit": "ask"
     }
 }
 ```
