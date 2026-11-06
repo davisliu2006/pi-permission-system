@@ -28,12 +28,13 @@ import type {
  */
 async function chooseSingleWildcard(
   ctx: ExtensionContext,
-  command: string
+  command: string,
+  aiModel?: string
 ): Promise<AllowAlwaysRule | undefined> {
   ctx.ui.setStatus(STATUS_KEY, STATUS_GENERATING_WILDCARD);
   let suggestion: string | undefined;
   try {
-    suggestion = await generateBashWildcard(ctx, command);
+    suggestion = await generateBashWildcard(ctx, command, aiModel);
   } finally {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
@@ -71,12 +72,13 @@ async function chooseSingleWildcard(
  */
 async function chooseWildcardListRules(
   ctx: ExtensionContext,
-  commands: readonly string[]
+  commands: readonly string[],
+  aiModel?: string
 ): Promise<AllowAlwaysRule[] | undefined> {
   ctx.ui.setStatus(STATUS_KEY, STATUS_GENERATING_WILDCARD);
   let suggestion: string[] | undefined;
   try {
-    suggestion = await generateBashWildcards(ctx, commands);
+    suggestion = await generateBashWildcards(ctx, commands, aiModel);
   } finally {
     ctx.ui.setStatus(STATUS_KEY, undefined);
   }
@@ -118,18 +120,19 @@ async function chooseWildcardListRules(
 export async function chooseAlwaysRules(
   ctx: ExtensionContext,
   request: PermissionRequest,
-  policy: PolicyResolution
+  policy: PolicyResolution,
+  aiModel?: string
 ): Promise<AllowAlwaysRule[] | undefined> {
   const mode = resolveAllowAlwaysMode(request, policy);
 
   if (mode === "wildcard") {
-    const rule = await chooseSingleWildcard(ctx, request.body);
+    const rule = await chooseSingleWildcard(ctx, request.body, aiModel);
     return rule ? [rule] : undefined;
   }
 
   if (mode === "wildcard-list") {
     const analysis = request.bashAnalysis ?? analyzeShellCommand(request.body);
-    return chooseWildcardListRules(ctx, analysis.segments);
+    return chooseWildcardListRules(ctx, analysis.segments, aiModel);
   }
 
   return [{ kind: "exact", tool: request.toolName, body: request.body }];

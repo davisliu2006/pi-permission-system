@@ -7,6 +7,10 @@ export const CONFIG_MUST_BE_OBJECT =
   "Permission config must be a JSON object; using defaults.";
 export const IGNORED_DEFAULT_WARNING =
   `Ignoring "default": expected ${PERMISSION_STATES_DESCRIPTION}.`;
+export const IGNORED_SETTINGS_WARNING =
+  'Ignoring "settings": expected an object.';
+export const IGNORED_AI_MODEL_WARNING =
+  'Ignoring "settings.ai_model": expected a string like "provider/model-id".';
 
 export const WILDCARD_LENGTH_REASON =
   "Pattern must be between 1 and 500 characters.";

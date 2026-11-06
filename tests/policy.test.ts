@@ -19,6 +19,7 @@ const baseConfig: PermissionConfig = {
   tools: { bash: "ask", read: "ask", write: "ask" },
   bash: {},
   external_directory: {},
+  settings: {},
 };
 
 function bashRequest(command: string): PermissionRequest {
@@ -116,6 +117,7 @@ test("complex chained commands fall back to default when tools.bash is absent", 
     tools: {},
     bash: { "*": "allow" },
     external_directory: {},
+    settings: {},
   };
 
   const request = bashRequest("git status | sh");

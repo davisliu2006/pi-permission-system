@@ -129,7 +129,8 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
       purpose = await generateRequestPurpose(
         ctx,
         request,
-        buildPurposePromptContext(request)
+        buildPurposePromptContext(request),
+        config.settings.ai_model
       );
     } finally {
       ctx.ui.setStatus(STATUS_KEY, undefined);
@@ -145,7 +146,12 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
       }
 
       // "allow always"
-      const rules = await chooseAlwaysRules(ctx, request, policy);
+      const rules = await chooseAlwaysRules(
+        ctx,
+        request,
+        policy,
+        config.settings.ai_model
+      );
       if (!rules) {
         // the user cancelled the wildcard editor, return to the permission dialog
         continue;

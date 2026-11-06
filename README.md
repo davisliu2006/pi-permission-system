@@ -29,7 +29,7 @@ Reject
 
 ## Configuration
 
-The supported top-level keys are: `default`, `tools`, `bash`, and `external_directory`.
+The supported top-level keys are: `default`, `tools`, `bash`, `external_directory`, and `settings`.
 
 `bash` body matching supports wildcard:
 - `*` matches any sequence and `?` matches one character
@@ -38,6 +38,8 @@ The supported top-level keys are: `default`, `tools`, `bash`, and `external_dire
 `tools` matches exact tool names.
 
 The builtin path tools in pi are: `read`, `write`, `edit`, `find`, `grep`, `ls`. `external_directory` overrides the settings for these path tools. The primary use is to override `write` and `edit` to a stronger policy for external directories.
+
+`settings` holds optional non-permission settings.
 
 ### Rule Precedence
 
@@ -104,6 +106,16 @@ Located in the local Pi config folder:
 
 Local configuration overrides global configuration, including `deny` rules.
 
+### Optional Settings
+
+```jsonc
+{
+    "settings": {
+        "ai-model": "provider/model-id"
+    }
+}
+```
+
 ## "Allow Always" Matching
 
 Matching is done as `(tool, body)`.
@@ -123,8 +135,8 @@ Body matching rules:
 
 Bash matching safeguards against unsafe shell syntax.
 
-Simple sequences separated only by `;`, `&&`, `||`, or newlines are split and each segment is matched against `bash` rules. The strictest result wins (`deny` > `ask` > `allow`).
+Sequences separated by `;`, `&&`, `||`, or newlines are split and each segment is matched against `bash` rules. The strictest result wins (`deny` > `ask` > `allow`).
 
-If a command contains other chaining or control syntax (`|`, `&`, command substitution, process substitution, or parentheses), `bash` pattern rules (except for `deny`) are skipped and the `tools.bash` policy is used instead, falling back to `default`.
+If a command contains other chaining (`|`, `&`, command/process substitution, or parentheses), `bash` pattern rules (except for `deny`) are skipped and the `tools.bash` policy is used instead, falling back to `default`.
 
-"Allow always" for complex or multi-command sequences saves the exact command, not a wildcard.
+"Allow always" for complex sequences saves the exact command, not a wildcard.

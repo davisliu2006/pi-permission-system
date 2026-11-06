@@ -39,7 +39,8 @@ function sanitizeWildcard(value: string): string | undefined {
  */
 export async function generateBashWildcard(
   ctx: ExtensionContext,
-  command: string
+  command: string,
+  aiModel?: string
 ): Promise<string | undefined> {
   const text = await completeText(ctx, {
     systemPrompt: WILDCARD_SYSTEM_PROMPT,
@@ -47,6 +48,7 @@ export async function generateBashWildcard(
     maxTokens: MAX_WILDCARD_TOKENS,
     timeoutMs: WILDCARD_TIMEOUT_MS,
     joinWith: "\n",
+    aiModel,
   });
   if (!text) {return undefined;}
 
@@ -65,7 +67,8 @@ export async function generateBashWildcard(
  */
 export async function generateBashWildcards(
   ctx: ExtensionContext,
-  commands: readonly string[]
+  commands: readonly string[],
+  aiModel?: string
 ): Promise<string[] | undefined> {
   if (commands.length === 0) {return undefined;}
 
@@ -75,6 +78,7 @@ export async function generateBashWildcards(
     maxTokens: MAX_WILDCARD_LIST_TOKENS,
     timeoutMs: WILDCARD_TIMEOUT_MS,
     joinWith: "\n",
+    aiModel,
   });
   if (!text) {return undefined;}
 

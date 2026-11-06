@@ -41,7 +41,8 @@ function sanitizePurpose(value: string): string | undefined {
 export async function generateRequestPurpose(
   ctx: ExtensionContext,
   request: PermissionRequest,
-  context: string
+  context: string,
+  aiModel?: string
 ): Promise<string | undefined> {
   const key = cacheKey(request);
   const cached = purposeCache.get(key);
@@ -52,6 +53,7 @@ export async function generateRequestPurpose(
     userText: buildPurposeInstructions(context),
     maxTokens: MAX_PURPOSE_TOKENS,
     timeoutMs: PURPOSE_TIMEOUT_MS,
+    aiModel,
   });
   if (!text) {return undefined;}
 

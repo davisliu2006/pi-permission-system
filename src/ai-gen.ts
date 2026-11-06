@@ -1,5 +1,6 @@
-import { complete, type Message } from "@earendil-works/pi-ai";
+import { complete, type Api, type Message, type Model } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { parseAiModelRef } from "./types.ts";
 
 export interface CompleteTextOptions {
   systemPrompt: string;
@@ -8,6 +9,8 @@ export interface CompleteTextOptions {
   timeoutMs: number;
   /** How to join multiple text blocks. Defaults to a single space. */
   joinWith?: string;
+  /** Optional `provider/model-id` override. Falls back to the session model. */
+  aiModel?: string;
 }
 
 /**
@@ -23,17 +26,37 @@ function timeoutSignal(signal: AbortSignal | undefined, timeoutMs: number): Abor
 }
 
 /**
- * Runs a single-turn text completion against the extension model.
+ * Resolves the model for helper completions.
+ */
+export function resolveCompletionModel(
+  ctx: ExtensionContext,
+  aiModel?: string
+): Model<Api> | undefined {
+  if (aiModel) {
+    const parsed = parseAiModelRef(aiModel);
+    if (parsed) {
+      const configured = ctx.modelRegistry.find(parsed.provider, parsed.modelId);
+      if (configured && ctx.modelRegistry.hasConfiguredAuth(configured)) {
+        return configured;
+      }
+    }
+  }
+  return ctx.model;
+}
+
+/**
+ * Runs a single-turn text completion against the extension helper model.
  * Returns undefined when the model/auth is unavailable, the call aborts, or no text is returned.
  */
 export async function completeText(
   ctx: ExtensionContext,
   options: CompleteTextOptions
 ): Promise<string | undefined> {
-  if (!ctx.model) {return undefined;}
+  const model = resolveCompletionModel(ctx, options.aiModel);
+  if (!model) {return undefined;}
 
   try {
-    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
+    const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
     if (!auth.ok || !auth.apiKey) {return undefined;}
 
     // prompt
@@ -50,7 +73,7 @@ export async function completeText(
 
     // call model
     const response = await complete(
-      ctx.model,
+      model,
       {
         systemPrompt: options.systemPrompt,
         messages: [message],

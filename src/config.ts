@@ -3,11 +3,13 @@ import { ASK } from "./constants.ts";
 import { parseJsonc } from "./jsonc.ts";
 import {
   createDefaultPermissionConfig,
+  parseAiModelRef,
   toPermissionState,
   toRecord,
   type ConfigWarning,
   type PermissionConfig,
   type PermissionSection,
+  type PermissionSettings,
   type PermissionState,
 } from "./types.ts";
 import {
@@ -16,7 +18,9 @@ import {
   formatConfigReadFailure,
   formatIgnoredSectionEntryWarning,
   formatIgnoredSectionWarning,
+  IGNORED_AI_MODEL_WARNING,
   IGNORED_DEFAULT_WARNING,
+  IGNORED_SETTINGS_WARNING,
 } from "./warning-strings.ts";
 
 const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
@@ -58,10 +62,43 @@ function normalizeSection(
 }
 
 /**
+ * Helper used by normalizeConfig.
+ * Ensures settings is a valid PermissionSettings object.
+ */
+function normalizeSettings(
+  raw: unknown,
+  configPath: string | undefined,
+  warnings: ConfigWarning[]
+): PermissionSettings {
+  if (raw === undefined) {return {};}
+  const record = toRecord(raw);
+  if (!record) {
+    warnings.push({
+      path: configPath,
+      message: IGNORED_SETTINGS_WARNING,
+    });
+    return {};
+  }
+
+  const settings: PermissionSettings = {};
+  if (record.ai_model !== undefined) {
+    if (typeof record.ai_model === "string" && parseAiModelRef(record.ai_model)) {
+      settings.ai_model = record.ai_model.trim();
+    } else {
+      warnings.push({
+        path: configPath,
+        message: IGNORED_AI_MODEL_WARNING,
+      });
+    }
+  }
+  return settings;
+}
+
+/**
  * Convert the raw config to a PermissionConfig.
  * Ensures the config is valid.
  */
-function normalizeConfig(
+export function normalizeConfig(
   rawConfig: unknown,
   configPath: string | undefined,
   warnings: ConfigWarning[]
@@ -94,6 +131,7 @@ function normalizeConfig(
       configPath,
       warnings
     ),
+    settings: normalizeSettings(config.settings, configPath, warnings),
   };
 }
 
@@ -166,6 +204,10 @@ export function mergeConfigs(
     external_directory: {
       ...globalConfig.external_directory,
       ...(localConfig?.external_directory ?? {}),
+    },
+    settings: {
+      ...globalConfig.settings,
+      ...(localConfig?.settings ?? {}),
     },
   };
 }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- Added `settings` to the config schema for non-permission settings.
+- Added `settings.ai_model` config field to optionally override the model for small helper completions.
+
 ### Changed
 
 - `deny` rules can now check complex bash segments.

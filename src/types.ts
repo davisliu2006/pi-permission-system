@@ -21,15 +21,37 @@ export function toPermissionState(value: unknown): PermissionState | undefined {
 
 export type PermissionSection = Record<string, PermissionState>;
 
+export interface PermissionSettings {
+  /** `provider/model-id` override for small helper completions. */
+  ai_model?: string;
+}
+
 export interface PermissionConfig {
   default: PermissionState;
   tools: PermissionSection;
   bash: PermissionSection;
   external_directory: PermissionSection;
+  settings: PermissionSettings;
 }
 
 export function createDefaultPermissionConfig(): PermissionConfig {
-  return { default: ASK, tools: {}, bash: {}, external_directory: {} };
+  return { default: ASK, tools: {}, bash: {}, external_directory: {}, settings: {} };
+}
+
+/**
+ * Parses `provider/model-id`.
+ * Splits using the first '/'.
+ */
+export function parseAiModelRef(
+  value: string
+): { provider: string; modelId: string } | undefined {
+  const trimmed = value.trim();
+  const slash = trimmed.indexOf("/");
+  if (slash <= 0 || slash >= trimmed.length - 1) {return undefined;}
+  const provider = trimmed.slice(0, slash).trim();
+  const modelId = trimmed.slice(slash + 1).trim();
+  if (!provider || !modelId) {return undefined;}
+  return { provider, modelId };
 }
 
 // permission request
