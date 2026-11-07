@@ -1,6 +1,6 @@
 {
   "name": "@davisliu2006/pi-permission-system",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Permission enforcement extension for the Pi coding agent.",
   "type": "module",
   "main": "./index.ts",
@@ -10,7 +10,8 @@
   "files": [
     "index.ts",
     "src",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
