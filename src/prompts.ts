@@ -76,9 +76,8 @@ export function buildPurposePromptContext(request: PermissionRequest): string {
 
 export const CLASSIFIER_SYSTEM_PROMPT = [
   "You decide whether a coding-agent tool request can be auto-allowed.",
-  "Reply with exactly one word: allow or ask.",
-  "Never reply with deny.",
-  "If uncertain, reply ask.",
+  "Reply with exactly one word, with no punctuation: \"allow\" or \"ask\".",
+  "If uncertain, reply \"ask\".",
 ].join(" ");
 
 export function buildClassifierInstructions(
@@ -86,13 +85,9 @@ export function buildClassifierInstructions(
   allowCriteria: string
 ): string {
   return [
-    "Decide whether this tool request should be auto-allowed.",
-    `Allow only if the request clearly meets this criteria: ${allowCriteria}.`,
-    "Otherwise reply ask.",
-    "If uncertain, reply ask.",
-    "Reply with exactly one word: allow or ask.",
+    `A request can be \"allow\" if it meets this criteria: ${allowCriteria}.`,
     "",
-    `Request:\n${context}`,
+    `Classify the following request:\n${context}`,
   ].join("\n");
 }
 
