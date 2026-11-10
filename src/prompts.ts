@@ -1,7 +1,6 @@
 import { describePolicy } from "./policy.ts";
 import type { PermissionRequest, PolicyResolution } from "./types.ts";
 
-const CHAINED_BASH_NOTE = "Shell chaining detected: bash pattern rules were skipped.";
 const EXTERNAL_DIRECTORY_NOTE = "Outside the working directory.";
 
 function preview(value: string, limit: number): string {
@@ -123,9 +122,7 @@ export function buildWildcardListInstructions(commands: readonly string[]): stri
  */
 export function formatDenyReason(request: PermissionRequest, policy: PolicyResolution): string {
   const subject = describeBlockedSubject(request, true);
-  const chainedNote = request.bashAnalysis?.isComplex ? ` ${CHAINED_BASH_NOTE}` : "";
-
-  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}.${chainedNote} Hard stop: do not retry or investigate a bypass. Report the denial to the user.`;
+  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}. Hard stop: do not retry or investigate a bypass. Report the denial to the user.`;
 }
 
 /**

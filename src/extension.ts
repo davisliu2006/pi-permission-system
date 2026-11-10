@@ -1,10 +1,12 @@
 import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { join } from "node:path";
 
+import { classifyAutoPermission } from "./ai-classifier.ts";
 import { clearPurposeCache, generateRequestPurpose } from "./ai-purpose.ts";
 import { clearWildcardCache } from "./matcher.ts";
 import {
   ALLOW,
+  AUTO,
   CONFIG_FILENAME,
   DENY,
   LOCAL_CONFIG_DIR_SEGMENTS,
@@ -115,13 +117,22 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     if (policy.state === ALLOW) { // auto allow
       return undefined;
     }
-    if (!ctx.hasUI) { // no ui, auto deny
-      return { block: true, reason: formatNoUiReason(request, policy) };
-    }
 
     // check session approval
     const approval = findSessionApproval(state.approvals.getRules(), request);
     if (approval) {return undefined;} // approved, proceed
+
+    if (policy.state === AUTO) { // use ai classifier
+      const decision = await classifyAutoPermission(
+        request,
+        config.settings.ai_model
+      );
+      if (decision === ALLOW) {return undefined;}
+    }
+
+    if (!ctx.hasUI) { // no ui, deny (same path as ask)
+      return { block: true, reason: formatNoUiReason(request, policy) };
+    }
 
     ctx.ui.setStatus(STATUS_KEY, STATUS_SUMMARIZING_REQUEST);
     let purpose: string | undefined;

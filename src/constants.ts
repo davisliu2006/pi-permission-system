@@ -7,10 +7,11 @@ export const CONFIG_FILENAME = "pi-permissions.jsonc";
 export const LOCAL_CONFIG_DIR_SEGMENTS = [".pi"] as const;
 
 export const ALLOW = "allow";
+export const AUTO = "auto";
 export const ASK = "ask";
 export const DENY = "deny";
-export const PERMISSION_STATES = [ALLOW, ASK, DENY] as const;
-export const PERMISSION_STATES_DESCRIPTION = "allow, ask, or deny";
+export const PERMISSION_STATES = [ALLOW, AUTO, ASK, DENY] as const;
+export const PERMISSION_STATES_DESCRIPTION = "allow, auto, ask, or deny";
 
 export const ALLOW_ONCE = "Allow Once";
 export const ALLOW_ALWAYS_EXACT = "Allow Always (exact match)";

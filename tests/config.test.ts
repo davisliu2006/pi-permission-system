@@ -14,6 +14,7 @@ import { IGNORED_AI_MODEL_WARNING } from "../src/warning-strings.ts";
 
 test("normalizes permission state strings", () => {
   assert.equal(toPermissionState("allow"), "allow");
+  assert.equal(toPermissionState("auto"), "auto");
   assert.equal(toPermissionState("ask"), "ask");
   assert.equal(toPermissionState("deny"), "deny");
   assert.equal(toPermissionState("ALLOW"), undefined);
