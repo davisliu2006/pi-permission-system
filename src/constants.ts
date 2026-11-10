@@ -13,6 +13,9 @@ export const DENY = "deny";
 export const PERMISSION_STATES = [ALLOW, AUTO, ASK, DENY] as const;
 export const PERMISSION_STATES_DESCRIPTION = "allow, auto, ask, or deny";
 
+/** Default criteria used by "auto" classifier. */
+export const DEFAULT_AUTO_ALLOW_CRITERIA = "read-only or easily reversible";
+
 export const ALLOW_ONCE = "Allow Once";
 export const ALLOW_ALWAYS_EXACT = "Allow Always (exact match)";
 export const ALLOW_ALWAYS_WILDCARD = "Allow Always (generate wildcard)";

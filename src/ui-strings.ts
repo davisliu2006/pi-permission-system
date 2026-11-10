@@ -7,6 +7,7 @@ import { resolveAllowAlwaysMode } from "./policy-bash.ts";
 import type { PermissionRequest, PolicyResolution } from "./types.ts";
 
 export const STATUS_SUMMARIZING_REQUEST = "Summarizing permission request...";
+export const STATUS_CLASSIFYING_REQUEST = "Classifying permission request...";
 export const STATUS_GENERATING_WILDCARD = "Generating bash wildcard...";
 
 export const PERMISSION_DIALOG_TITLE = "Permission Required";

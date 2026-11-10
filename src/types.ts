@@ -24,6 +24,8 @@ export type PermissionSection = Record<string, PermissionState>;
 export interface PermissionSettings {
   /** `provider/model-id` override for small helper completions. */
   ai_model?: string;
+  /** Criteria prompt override for what "auto" may allow. */
+  auto_allow_criteria?: string;
 }
 
 export interface PermissionConfig {

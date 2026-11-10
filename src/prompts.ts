@@ -27,6 +27,32 @@ export function describeBlockedSubject(
 }
 
 /**
+ * Builds context for the "auto" permission classifier.
+ */
+export function buildClassifierPromptContext(request: PermissionRequest): string {
+  const lines = [
+    `Tool: ${request.toolName}`,
+    `Working directory: ${request.cwd}`,
+  ];
+
+  if (request.bodyKind === "command") {
+    lines.push(`Command:\n${preview(request.body, 600)}`);
+  } else if (request.bodyKind === "path") {
+    lines.push(`Path: ${preview(request.body, 400)}`);
+  } else {
+    lines.push(`Input: ${preview(request.body, 600)}`);
+  }
+
+  if (request.isExternalDirectory !== undefined) {
+    lines.push(
+      `Outside working directory: ${request.isExternalDirectory ? "yes" : "no"}`
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Builds context for the ai-generated purpose.
  */
 export function buildPurposePromptContext(request: PermissionRequest): string {
@@ -46,6 +72,28 @@ export function buildPurposePromptContext(request: PermissionRequest): string {
   }
 
   return lines.join("\n");
+}
+
+export const CLASSIFIER_SYSTEM_PROMPT = [
+  "You decide whether a coding-agent tool request can be auto-allowed.",
+  "Reply with exactly one word: allow or ask.",
+  "Never reply with deny.",
+  "If uncertain, reply ask.",
+].join(" ");
+
+export function buildClassifierInstructions(
+  context: string,
+  allowCriteria: string
+): string {
+  return [
+    "Decide whether this tool request should be auto-allowed.",
+    `Allow only if the request clearly meets this criteria: ${allowCriteria}.`,
+    "Otherwise reply ask.",
+    "If uncertain, reply ask.",
+    "Reply with exactly one word: allow or ask.",
+    "",
+    `Request:\n${context}`,
+  ].join("\n");
 }
 
 export const PURPOSE_SYSTEM_PROMPT = [
@@ -101,9 +149,6 @@ export function buildWildcardInstructions(command: string): string {
   ].join("\n");
 }
 
-/**
- * Builds instructions for generating one wildcard per command in a simple list.
- */
 export function buildWildcardListInstructions(commands: readonly string[]): string {
   return [
     "Create a permission wildcard for each command below.",

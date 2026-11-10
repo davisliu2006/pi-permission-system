@@ -19,6 +19,7 @@ import {
   formatIgnoredSectionEntryWarning,
   formatIgnoredSectionWarning,
   IGNORED_AI_MODEL_WARNING,
+  IGNORED_AUTO_ALLOW_CRITERIA_WARNING,
   IGNORED_DEFAULT_WARNING,
   IGNORED_SETTINGS_WARNING,
 } from "./warning-strings.ts";
@@ -88,6 +89,19 @@ function normalizeSettings(
       warnings.push({
         path: configPath,
         message: IGNORED_AI_MODEL_WARNING,
+      });
+    }
+  }
+  if (record.auto_allow_criteria !== undefined) {
+    if (
+      typeof record.auto_allow_criteria === "string"
+      && record.auto_allow_criteria.trim()
+    ) {
+      settings.auto_allow_criteria = record.auto_allow_criteria.trim();
+    } else {
+      warnings.push({
+        path: configPath,
+        message: IGNORED_AUTO_ALLOW_CRITERIA_WARNING,
       });
     }
   }

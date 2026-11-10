@@ -11,6 +11,8 @@ export const IGNORED_SETTINGS_WARNING =
   'Ignoring "settings": expected an object.';
 export const IGNORED_AI_MODEL_WARNING =
   'Ignoring "settings.ai_model": expected a string like "provider/model-id".';
+export const IGNORED_AUTO_ALLOW_CRITERIA_WARNING =
+  'Ignoring "settings.auto_allow_criteria": expected a non-empty string.';
 
 export const WILDCARD_LENGTH_REASON =
   "Pattern must be between 1 and 500 characters.";

@@ -24,7 +24,10 @@ import {
 } from "./prompts.ts";
 import { buildRequest } from "./request-builder.ts";
 import { SessionApprovalStore } from "./session-approvals.ts";
-import { STATUS_SUMMARIZING_REQUEST } from "./ui-strings.ts";
+import {
+  STATUS_CLASSIFYING_REQUEST,
+  STATUS_SUMMARIZING_REQUEST,
+} from "./ui-strings.ts";
 import {
   CONFIG_WARNING_PREFIX,
   formatSuppressedConfigWarnings,
@@ -123,11 +126,22 @@ export function registerPermissionSystem(pi: ExtensionAPI): void {
     if (approval) {return undefined;} // approved, proceed
 
     if (policy.state === AUTO) { // use ai classifier
-      const decision = await classifyAutoPermission(
-        request,
-        config.settings.ai_model
-      );
-      if (decision === ALLOW) {return undefined;}
+      if (ctx.hasUI) {
+        ctx.ui.setStatus(STATUS_KEY, STATUS_CLASSIFYING_REQUEST);
+      }
+      try {
+        const decision = await classifyAutoPermission(
+          ctx,
+          request,
+          config.settings.ai_model,
+          config.settings.auto_allow_criteria
+        );
+        if (decision === ALLOW) {return undefined;}
+      } finally {
+        if (ctx.hasUI) {
+          ctx.ui.setStatus(STATUS_KEY, undefined);
+        }
+      }
     }
 
     if (!ctx.hasUI) { // no ui, deny (same path as ask)

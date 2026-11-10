@@ -10,7 +10,10 @@ import {
   type ConfigWarning,
   type PermissionConfig,
 } from "../src/types.ts";
-import { IGNORED_AI_MODEL_WARNING } from "../src/warning-strings.ts";
+import {
+  IGNORED_AI_MODEL_WARNING,
+  IGNORED_AUTO_ALLOW_CRITERIA_WARNING,
+} from "../src/warning-strings.ts";
 
 test("normalizes permission state strings", () => {
   assert.equal(toPermissionState("allow"), "allow");
@@ -126,27 +129,38 @@ test("parseAiModelRef accepts provider/model-id", () => {
   assert.equal(parseAiModelRef("provider/"), undefined);
 });
 
-test("normalizes and merges settings.ai_model", () => {
+test("normalizes and merges settings", () => {
   const warnings: ConfigWarning[] = [];
   const normalized = normalizeConfig(
     {
       default: "ask",
-      settings: { ai_model: " deepseek/deepseek-flash " },
+      settings: {
+        ai_model: " deepseek/deepseek-flash ",
+        auto_allow_criteria: "  read-only commands  ",
+      },
     },
     "test.jsonc",
     warnings
   );
   assert.equal(normalized.settings.ai_model, "deepseek/deepseek-flash");
+  assert.equal(normalized.settings.auto_allow_criteria, "read-only commands");
   assert.equal(warnings.length, 0);
 
   const ignoredWarnings: ConfigWarning[] = [];
   const ignored = normalizeConfig(
-    { default: "ask", settings: { ai_model: "not-a-ref" } },
+    {
+      default: "ask",
+      settings: { ai_model: "not-a-ref", auto_allow_criteria: "   " },
+    },
     "test.jsonc",
     ignoredWarnings
   );
   assert.equal(ignored.settings.ai_model, undefined);
-  assert.equal(ignoredWarnings[0]?.message, IGNORED_AI_MODEL_WARNING);
+  assert.equal(ignored.settings.auto_allow_criteria, undefined);
+  assert.deepEqual(
+    ignoredWarnings.map((warning) => warning.message),
+    [IGNORED_AI_MODEL_WARNING, IGNORED_AUTO_ALLOW_CRITERIA_WARNING]
+  );
 
   const merged = mergeConfigs(
     {
@@ -154,17 +168,24 @@ test("normalizes and merges settings.ai_model", () => {
       tools: {},
       bash: {},
       external_directory: {},
-      settings: { ai_model: "deepseek/deepseek-flash" },
+      settings: {
+        ai_model: "deepseek/deepseek-flash",
+        auto_allow_criteria: "safe reads",
+      },
     },
     {
       default: "ask",
       tools: {},
       bash: {},
       external_directory: {},
-      settings: { ai_model: "deepseek/deepseek-pro" },
+      settings: {
+        ai_model: "deepseek/deepseek-pro",
+        auto_allow_criteria: "reversible edits",
+      },
     }
   );
   assert.equal(merged.settings.ai_model, "deepseek/deepseek-pro");
+  assert.equal(merged.settings.auto_allow_criteria, "reversible edits");
 
   const keptGlobal = mergeConfigs(
     {
@@ -172,7 +193,10 @@ test("normalizes and merges settings.ai_model", () => {
       tools: {},
       bash: {},
       external_directory: {},
-      settings: { ai_model: "deepseek/deepseek-flash" },
+      settings: {
+        ai_model: "deepseek/deepseek-flash",
+        auto_allow_criteria: "safe reads",
+      },
     },
     {
       default: "ask",
@@ -183,4 +207,5 @@ test("normalizes and merges settings.ai_model", () => {
     }
   );
   assert.equal(keptGlobal.settings.ai_model, "deepseek/deepseek-flash");
+  assert.equal(keptGlobal.settings.auto_allow_criteria, "safe reads");
 });
