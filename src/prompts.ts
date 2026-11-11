@@ -1,7 +1,6 @@
 import { describePolicy } from "./policy.ts";
 import type { PermissionRequest, PolicyResolution } from "./types.ts";
 
-const CHAINED_BASH_NOTE = "Shell chaining detected: bash pattern rules were skipped.";
 const EXTERNAL_DIRECTORY_NOTE = "Outside the working directory.";
 
 function preview(value: string, limit: number): string {
@@ -28,6 +27,32 @@ export function describeBlockedSubject(
 }
 
 /**
+ * Builds context for the "auto" permission classifier.
+ */
+export function buildClassifierPromptContext(request: PermissionRequest): string {
+  const lines = [
+    `Tool: ${request.toolName}`,
+    `Working directory: ${request.cwd}`,
+  ];
+
+  if (request.bodyKind === "command") {
+    lines.push(`Command:\n${preview(request.body, 600)}`);
+  } else if (request.bodyKind === "path") {
+    lines.push(`Path: ${preview(request.body, 400)}`);
+  } else {
+    lines.push(`Input: ${preview(request.body, 600)}`);
+  }
+
+  if (request.isExternalDirectory !== undefined) {
+    lines.push(
+      `Outside working directory: ${request.isExternalDirectory ? "yes" : "no"}`
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Builds context for the ai-generated purpose.
  */
 export function buildPurposePromptContext(request: PermissionRequest): string {
@@ -47,6 +72,23 @@ export function buildPurposePromptContext(request: PermissionRequest): string {
   }
 
   return lines.join("\n");
+}
+
+export const CLASSIFIER_SYSTEM_PROMPT = [
+  "You decide whether a coding-agent tool request can be auto-allowed.",
+  "Reply with exactly one word, with no punctuation: \"allow\" or \"ask\".",
+  "If uncertain, reply \"ask\".",
+].join(" ");
+
+export function buildClassifierInstructions(
+  context: string,
+  allowCriteria: string
+): string {
+  return [
+    `A request can be \"allow\" if it meets this criteria: ${allowCriteria}.`,
+    "",
+    `Classify the following request:\n${context}`,
+  ].join("\n");
 }
 
 export const PURPOSE_SYSTEM_PROMPT = [
@@ -102,9 +144,6 @@ export function buildWildcardInstructions(command: string): string {
   ].join("\n");
 }
 
-/**
- * Builds instructions for generating one wildcard per command in a simple list.
- */
 export function buildWildcardListInstructions(commands: readonly string[]): string {
   return [
     "Create a permission wildcard for each command below.",
@@ -123,9 +162,7 @@ export function buildWildcardListInstructions(commands: readonly string[]): stri
  */
 export function formatDenyReason(request: PermissionRequest, policy: PolicyResolution): string {
   const subject = describeBlockedSubject(request, true);
-  const chainedNote = request.bashAnalysis?.isComplex ? ` ${CHAINED_BASH_NOTE}` : "";
-
-  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}.${chainedNote} Hard stop: do not retry or investigate a bypass. Report the denial to the user.`;
+  return `Permission denied for ${subject}. Policy: ${describePolicy(policy)}. Hard stop: do not retry or investigate a bypass. Report the denial to the user.`;
 }
 
 /**

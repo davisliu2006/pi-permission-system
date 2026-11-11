@@ -11,8 +11,9 @@ A permission can be one of the following:
 
 ```jsonc
 "allow"  // allows the action
-"ask"  // asks the user for permission
-"deny"  // automatically denies the action
+"auto"   // uses an AI classifier to choose between allow and ask
+"ask"    // asks the user for permission
+"deny"   // automatically denies the action
 ```
 
 Ask states the purpose of the request and gives the following options:
@@ -106,15 +107,23 @@ Located in the local Pi config folder:
 
 Local configuration overrides global configuration, including `deny` rules.
 
+Set `settings.ignore_global` to `true` in the local config to ignore global permission sections entirely.
+
 ### Optional Settings
 
 ```jsonc
 {
     "settings": {
-        "ai-model": "provider/model-id"
+        "ignore_global": true,
+        "ai_model": "provider/model-id",
+        "auto_allow_criteria": "read-only or easily reversible"
     }
 }
 ```
+
+- `ignore_global: boolean`: Skips global permission sections if placed in a local config. Has no effect if placed in a global config.
+- `ai_model: string`: Overrides the model used for helper completions.
+- `auto_allow_criteria: string`: Specify the auto-classifer criteria. Defaults to `"read-only or easily reversible"`.
 
 ## "Allow Always" Matching
 
@@ -135,8 +144,8 @@ Body matching rules:
 
 Bash matching safeguards against unsafe shell syntax.
 
-Sequences separated by `;`, `&&`, `||`, or newlines are split and each segment is matched against `bash` rules. The strictest result wins (`deny` > `ask` > `allow`).
+Sequences separated by `;`, `&&`, `||`, or newlines are split and each segment is matched against `bash` rules. The strictest result wins (`deny` > `ask` > `auto` > `allow`).
 
-If a command contains other chaining (`|`, `&`, command/process substitution, or parentheses), `bash` pattern rules (except for `deny`) are skipped and the `tools.bash` policy is used instead, falling back to `default`.
+If a command contains other chaining (`|`, `&`, command/process substitution, or parentheses), `bash` pattern rules for `allow` are skipped, allowing other segments to take priority and successively falling back to `tools.bash` and `default`.
 
 "Allow always" for complex sequences saves the exact command, not a wildcard.

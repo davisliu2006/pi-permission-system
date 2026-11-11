@@ -93,7 +93,7 @@ test("newline sequences are matched like other list sequences", () => {
   assert.equal(policy.matchedPattern, "git log*");
 });
 
-test("complex chained commands skip allow/ask bash patterns and fall back to tools.bash", () => {
+test("complex chained commands skip allow bash patterns and fall back to tools.bash", () => {
   const config: PermissionConfig = {
     ...baseConfig,
     tools: { ...baseConfig.tools, bash: "ask" },
@@ -127,7 +127,7 @@ test("complex chained commands fall back to default when tools.bash is absent", 
   assert.equal(request.bashAnalysis?.isComplex, true);
 });
 
-test("complex pipelines still honor bash deny rules on stages", () => {
+test("complex pipelines still honor bash deny rules", () => {
   const config: PermissionConfig = {
     ...baseConfig,
     tools: { ...baseConfig.tools, bash: "allow" },
@@ -154,6 +154,60 @@ test("complex pipelines still honor bash deny rules on stages", () => {
   assert.equal(deniedStage.state, "deny");
   assert.equal(deniedStage.source, "bash");
   assert.equal(deniedStage.matchedPattern, "rm *");
+});
+
+test("complex pipelines honor ask and auto bash rules", () => {
+  const askConfig: PermissionConfig = {
+    ...baseConfig,
+    tools: { ...baseConfig.tools, bash: "allow" },
+    bash: {
+      "*": "allow",
+      "sh*": "ask",
+    },
+  };
+  const askPolicy = resolvePolicy(askConfig, bashRequest("git status | sh"));
+  assert.equal(askPolicy.state, "ask");
+  assert.equal(askPolicy.source, "bash");
+  assert.equal(askPolicy.matchedPattern, "sh*");
+
+  const autoConfig: PermissionConfig = {
+    ...baseConfig,
+    tools: { ...baseConfig.tools, bash: "allow" },
+    bash: {
+      "*": "allow",
+      "sh*": "auto",
+    },
+  };
+  const autoPolicy = resolvePolicy(autoConfig, bashRequest("git status | sh"));
+  assert.equal(autoPolicy.state, "auto");
+  assert.equal(autoPolicy.source, "bash");
+  assert.equal(autoPolicy.matchedPattern, "sh*");
+});
+
+test("multi-segment bash prefers deny over ask over auto over allow", () => {
+  const config: PermissionConfig = {
+    ...baseConfig,
+    tools: { ...baseConfig.tools, bash: "allow" },
+    bash: {
+      "git status*": "allow",
+      "git log*": "auto",
+      "git diff*": "ask",
+      "rm *": "deny",
+    },
+  };
+
+  assert.equal(
+    resolvePolicy(config, bashRequest("git status; git log")).state,
+    "auto"
+  );
+  assert.equal(
+    resolvePolicy(config, bashRequest("git status; git log; git diff")).state,
+    "ask"
+  );
+  assert.equal(
+    resolvePolicy(config, bashRequest("git status; git log; rm -rf /")).state,
+    "deny"
+  );
 });
 
 test("external directory rules replace the normal tool policy", () => {

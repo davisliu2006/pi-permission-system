@@ -11,9 +11,14 @@ import type {
 
 const STATE_RANK: Record<PermissionState, number> = {
   allow: 0,
-  ask: 1,
-  deny: 2,
+  auto: 1,
+  ask: 2,
+  deny: 3,
 };
+
+function appliesWhenComplex(state: PermissionState): boolean {
+  return state === "deny" || state === "ask" || state === "auto";
+}
 
 /**
  * Prefers the analysis stored on the request.
@@ -41,30 +46,37 @@ function bashFallbackResolution(config: PermissionConfig): PolicyResolution {
 }
 
 /**
- * Resolves one simple bash segment against bash rules, then tools.bash / default.
+ * Resolves one bash segment against bash rules.
+ * Returns undefined if a complex segment fails to match a rule.
  */
 function resolveBashSegment(
   config: PermissionConfig,
-  segment: string
-): PolicyResolution {
+  segment: string,
+  isComplex: boolean
+): PolicyResolution | undefined {
   const match = findLastWildcardMatch(config.bash, segment);
-  if (match) {
-    return {
-      state: match.state,
-      source: "bash",
-      matchedPattern: match.pattern,
-    };
+  if (!match) {
+    return isComplex ? undefined : bashFallbackResolution(config);
   }
-  return bashFallbackResolution(config);
+  if (isComplex && !appliesWhenComplex(match.state)) {
+    return undefined;
+  }
+  return {
+    state: match.state,
+    source: "bash",
+    matchedPattern: match.pattern,
+  };
 }
 
 /**
- * Worst state wins across simple list segments.
+ * Worst state wins across segment resolutions.
  * When ranks tie, keep the later segment's resolution.
+ * Returns undefined when there are no votes.
  */
 function combineBashSegmentResolutions(
-  resolutions: PolicyResolution[]
-): PolicyResolution {
+  resolutions: readonly PolicyResolution[]
+): PolicyResolution | undefined {
+  if (resolutions.length === 0) {return undefined;}
   let worst = resolutions[0]!;
   for (let index = 1; index < resolutions.length; index++) {
     const next = resolutions[index]!;
@@ -76,43 +88,19 @@ function combineBashSegmentResolutions(
 }
 
 /**
- * "Deny" rule can do raw wildcard matching on complex segments.
- */
-function resolveComplexBashDeny(
-  config: PermissionConfig,
-  segments: readonly string[]
-): PolicyResolution | undefined {
-  let denied: PolicyResolution | undefined;
-  for (const segment of segments) {
-    const match = findLastWildcardMatch(config.bash, segment);
-    if (match?.state !== "deny") {continue;}
-    denied = {
-      state: "deny",
-      source: "bash",
-      matchedPattern: match.pattern,
-    };
-  }
-  return denied;
-}
-
-/**
- * Resolves bash policy, including simple list splitting.
+ * Resolves bash policy, including command splitting.
  */
 export function resolveBashPolicy(
   config: PermissionConfig,
   request: PermissionRequest
 ): PolicyResolution {
   const analysis = bashAnalysisOf(request);
-  if (analysis.isComplex) {
-    return (
-      resolveComplexBashDeny(config, analysis.segments) ??
-      bashFallbackResolution(config)
-    );
+  const votes: PolicyResolution[] = [];
+  for (const segment of analysis.segments) {
+    const resolution = resolveBashSegment(config, segment, analysis.isComplex);
+    if (resolution) {votes.push(resolution);}
   }
-  const resolutions = analysis.segments.map((segment) =>
-    resolveBashSegment(config, segment)
-  );
-  return combineBashSegmentResolutions(resolutions);
+  return combineBashSegmentResolutions(votes) ?? bashFallbackResolution(config);
 }
 
 /**
