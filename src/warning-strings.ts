@@ -13,6 +13,10 @@ export const IGNORED_AI_MODEL_WARNING =
   'Ignoring "settings.ai_model": expected a string like "provider/model-id".';
 export const IGNORED_AUTO_ALLOW_CRITERIA_WARNING =
   'Ignoring "settings.auto_allow_criteria": expected a non-empty string.';
+export const IGNORED_IGNORE_GLOBAL_WARNING =
+  'Ignoring "settings.ignore_global": expected a boolean.';
+export const IGNORED_IGNORE_GLOBAL_LOCAL_ONLY_WARNING =
+  'Ignoring "settings.ignore_global": this setting is only valid in local config.';
 
 export const WILDCARD_LENGTH_REASON =
   "Pattern must be between 1 and 500 characters.";

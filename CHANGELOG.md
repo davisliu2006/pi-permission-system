@@ -5,6 +5,7 @@
 ### Added
 
 - Added experimental auto-classifier, `auto` permission, and `settings.auto_allow_criteria`.
+- Added `settings.ignore_global` to the local config to ignore global permission rules.
 
 ## [0.3.0] — 2026-11-07
 

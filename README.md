@@ -107,16 +107,23 @@ Located in the local Pi config folder:
 
 Local configuration overrides global configuration, including `deny` rules.
 
+Set `settings.ignore_global` to `true` in the local config to ignore global permission sections entirely.
+
 ### Optional Settings
 
 ```jsonc
 {
     "settings": {
+        "ignore_global": true,
         "ai_model": "provider/model-id",
-        "auto_allow_criteria": "read-only or easily reversible"  // (default criteria)
+        "auto_allow_criteria": "read-only or easily reversible"
     }
 }
 ```
+
+- `ignore_global: boolean`: Skips global permission sections if placed in a local config. Has no effect if placed in a global config.
+- `ai_model: string`: Overrides the model used for helper completions.
+- `auto_allow_criteria: string`: Specify the auto-classifer criteria. Defaults to `"read-only or easily reversible"`.
 
 ## "Allow Always" Matching
 
