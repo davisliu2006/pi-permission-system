@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added experimental auto-classifier, `auto` permission, and `settings.auto_allow_criteria`.
+
 ## [0.3.0] — 2026-11-07
 
 ### Added

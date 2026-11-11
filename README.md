@@ -112,7 +112,8 @@ Local configuration overrides global configuration, including `deny` rules.
 ```jsonc
 {
     "settings": {
-        "ai-model": "provider/model-id"
+        "ai_model": "provider/model-id",
+        "auto_allow_criteria": "read-only or easily reversible"  // (default criteria)
     }
 }
 ```

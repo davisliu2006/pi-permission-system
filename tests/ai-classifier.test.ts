@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { parseAutoDecision } from "../src/ai-classifier.ts";
-import { buildClassifierPromptContext } from "../src/prompts.ts";
-import type { PermissionRequest } from "../src/types.ts";
 
 test("parseAutoDecision only accepts an exact allow token", () => {
   assert.equal(parseAutoDecision("allow"), "allow");
