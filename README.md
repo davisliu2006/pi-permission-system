@@ -4,6 +4,13 @@ Permissions management for the `pi` coding agent.
 
 Roughly based on [MasuRii/pi-permission-system](https://github.com/MasuRii/pi-permission-system).
 
+<img src="https://raw.githubusercontent.com/davisliu2006/pi-permission-system/main/images/image.webp">
+
+### Key Features
+
+- [Bash splitting](#bash-matching-safeguards). Splits chained commands (eg. `cd ~ && pwd`) into parts and matches rules for each segment.
+- AI-generated request purpose and bash rule wildcard.
+- Experimental auto-classifier. Supports configurable auto-allow critera.
 
 ## Permissions Overview
 
